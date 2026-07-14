@@ -2,4 +2,150 @@ syntax = "proto3";
 
 package blog.v1;
 
-service BlogService {}
+/// gRPC API блога.
+service BlogService {
+  /// Регистрирует нового пользователя.
+  rpc Register(RegisterRequest) returns (AuthResponse);
+
+  /// Выполняет вход пользователя.
+  rpc Login(LoginRequest) returns (AuthResponse);
+
+  /// Создает новый пост.
+  rpc CreatePost(CreatePostRequest) returns (Post);
+
+  /// Возвращает пост по идентификатору.
+  rpc GetPost(GetPostRequest) returns (Post);
+
+  /// Обновляет существующий пост.
+  rpc UpdatePost(UpdatePostRequest) returns (Post);
+
+  /// Удаляет пост по идентификатору.
+  rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
+
+  /// Возвращает список постов.
+  rpc ListPosts(ListPostsRequest) returns (ListPostsResponse);
+}
+
+// Аутентификация
+
+/// Запрос на регистрацию пользователя.
+message RegisterRequest {
+  /// Имя пользователя.
+  string username = 1;
+
+  /// Электронная почта пользователя.
+  string email = 2;
+
+  /// Пароль пользователя.
+  string password = 3;
+}
+
+/// Запрос на вход пользователя.
+message LoginRequest {
+  /// Электронная почта пользователя.
+  string email = 1;
+
+  /// Пароль пользователя.
+  string password = 2;
+}
+
+/// Ответ с токеном доступа и данными пользователя.
+message AuthResponse {
+  /// Токен доступа.
+  string token = 1;
+
+  /// Данные аутентифицированного пользователя.
+  User user = 2;
+}
+
+/// Пользователь блога.
+message User {
+  /// Идентификатор пользователя.
+  string id = 1;
+
+  /// Имя пользователя.
+  string username = 2;
+
+  /// Электронная почта пользователя.
+  string email = 3;
+}
+
+// Посты
+
+/// Пост блога.
+message Post {
+  /// Идентификатор поста.
+  string id = 1;
+
+  /// Заголовок поста.
+  string title = 2;
+
+  /// Содержимое поста.
+  string content = 3;
+
+  /// Идентификатор автора поста.
+  string author_id = 4;
+
+  /// Время создания поста в Unix timestamp.
+  int64 created_at = 5;
+
+  /// Время последнего обновления поста в Unix timestamp.
+  int64 updated_at = 6;
+}
+
+/// Запрос на создание поста.
+message CreatePostRequest {
+  /// Заголовок поста.
+  string title = 1;
+
+  /// Содержимое поста.
+  string content = 2;
+
+  /// Идентификатор автора поста.
+  string author_id = 3;
+}
+
+/// Запрос на получение поста.
+message GetPostRequest {
+  /// Идентификатор поста.
+  string id = 1;
+}
+
+/// Запрос на обновление поста.
+message UpdatePostRequest {
+  /// Идентификатор поста.
+  string id = 1;
+
+  /// Новый заголовок поста.
+  string title = 2;
+
+  /// Новое содержимое поста.
+  string content = 3;
+}
+
+/// Запрос на удаление поста.
+message DeletePostRequest {
+  /// Идентификатор поста.
+  string id = 1;
+}
+
+/// Ответ на удаление поста.
+message DeletePostResponse {}
+
+/// Запрос списка постов.
+message ListPostsRequest {
+  /// Максимальное количество постов в ответе.
+  uint32 page_size = 1;
+
+  /// Токен следующей страницы.
+  string page_token = 2;
+}
+
+/// Ответ со списком постов.
+message ListPostsResponse {
+  /// Посты текущей страницы.
+  repeated Post posts = 1;
+
+  /// Токен следующей страницы.
+  string next_page_token = 2;
+}
