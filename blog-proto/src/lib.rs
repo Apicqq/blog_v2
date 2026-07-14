@@ -10,6 +10,7 @@ pub mod generated {
     #![allow(clippy::doc_markdown)]
     #![allow(clippy::match_single_binding)]
     #![allow(clippy::missing_errors_doc)]
+    #![allow(clippy::too_many_lines)]
 
     tonic::include_proto!("blog.v1");
 }
