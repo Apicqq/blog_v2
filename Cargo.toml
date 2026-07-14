@@ -3,7 +3,8 @@ members = [
     "blog-cli",
     "blog-server",
     "blog-client",
-    "blog-wasm"
+    "blog-wasm",
+    "blog-proto"
 ]
 resolver = "3"
 

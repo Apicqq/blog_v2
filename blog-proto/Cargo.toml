@@ -1,12 +1,9 @@
 [package]
-name = "blog-wasm"
+name = "blog-proto"
 version.workspace = true
 edition.workspace = true
 
-[lib]
-crate-type = ["cdylib"]
+[dependencies]
 
 [lints]
 workspace = true
-
-[dependencies]
