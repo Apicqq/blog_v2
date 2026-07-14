@@ -22,3 +22,5 @@ unreachable_pub = "warn"
 pedantic = "warn"
 perf = "warn"
 
+[workspace.dependencies]
+blog-proto = {path = "blog-proto"}
