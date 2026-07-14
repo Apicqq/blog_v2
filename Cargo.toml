@@ -3,7 +3,8 @@ members = [
     "blog-cli",
     "blog-server",
     "blog-client",
-    "blog-wasm"
+    "blog-wasm",
+    "blog-proto"
 ]
 resolver = "3"
 
@@ -21,3 +22,9 @@ unreachable_pub = "warn"
 pedantic = "warn"
 perf = "warn"
 
+[workspace.dependencies]
+blog-proto = { path = "blog-proto" }
+prost = "0.14"
+tonic = "0.14"
+tonic-prost = "0.14"
+tonic-prost-build = "0.14"
