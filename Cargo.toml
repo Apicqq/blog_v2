@@ -23,4 +23,8 @@ pedantic = "warn"
 perf = "warn"
 
 [workspace.dependencies]
-blog-proto = {path = "blog-proto"}
+blog-proto = { path = "blog-proto" }
+prost = "0.14"
+tonic = "0.14"
+tonic-prost = "0.14"
+tonic-prost-build = "0.14"
