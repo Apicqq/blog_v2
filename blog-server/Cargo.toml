@@ -8,3 +8,9 @@ workspace = true
 
 [dependencies]
 blog-proto.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+serde_json.workspace = true
+actix-web.workspace = true
