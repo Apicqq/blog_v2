@@ -20,7 +20,7 @@ pub trait PostRepository {
     /// # Errors
     ///
     /// Возвращает доменную ошибку, если хранилище недоступно.
-    async fn find_by_id(&self, id: u64) -> Result<Option<Post>, DomainError>;
+    async fn find_by_id(&self, id: i64) -> Result<Option<Post>, DomainError>;
 
     /// Обновляет пост.
     ///
@@ -34,7 +34,7 @@ pub trait PostRepository {
     /// # Errors
     ///
     /// Возвращает доменную ошибку, если пост не может быть удален.
-    async fn delete(&self, id: u64) -> Result<(), DomainError>;
+    async fn delete(&self, id: i64) -> Result<(), DomainError>;
 
     /// Возвращает страницу постов.
     ///

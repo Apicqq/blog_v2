@@ -37,19 +37,13 @@ impl UserRepository for SeaOrmUserRepository {
             created_at: Set(user.created_at),
         };
 
-        let model = active_model
-            .insert(&self.db)
-            .await
-            .map_err(|err| DomainError::Internal(err.to_string()))?;
+        let model = active_model.insert(&self.db).await?;
 
         Ok(User::from(model))
     }
 
     async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, DomainError> {
-        let user = DBUser::find_by_id(id)
-            .one(&self.db)
-            .await
-            .map_err(|err| DomainError::Internal(err.to_string()))?;
+        let user = DBUser::find_by_id(id).one(&self.db).await?;
 
         Ok(user.map(User::from))
     }
@@ -58,8 +52,7 @@ impl UserRepository for SeaOrmUserRepository {
         let user = DBUser::find()
             .filter(user::Column::Username.eq(username))
             .one(&self.db)
-            .await
-            .map_err(|err| DomainError::Internal(err.to_string()))?;
+            .await?;
 
         Ok(user.map(User::from))
     }
@@ -68,8 +61,7 @@ impl UserRepository for SeaOrmUserRepository {
         let user_exists = DBUser::find()
             .filter(user::Column::Username.eq(username))
             .exists(&self.db)
-            .await
-            .map_err(|err| DomainError::Internal(err.to_string()))?;
+            .await?;
 
         Ok(user_exists)
     }
