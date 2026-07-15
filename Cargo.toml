@@ -48,3 +48,4 @@ sea-orm-migration = { version = "1", features = [
     "with-chrono",
     "with-uuid"
 ] }
+async-trait = "0.1"
