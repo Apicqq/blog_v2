@@ -1,13 +1,16 @@
 //! Репозиторий пользователей на `SeaORM`.
 
 use async_trait::async_trait;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    Set,
+};
 use uuid::Uuid;
 
 use crate::application::ports::user_repository::UserRepository;
 use crate::domain::errors::DomainError;
 use crate::domain::user::User;
-use crate::infrastructure::persistence::entities::user;
+use crate::infrastructure::persistence::entities::user::{self, ActiveModel, Entity as DBUser};
 
 /// `SeaORM`-реализация хранилища пользователей.
 #[derive(Debug, Clone)]
@@ -26,7 +29,7 @@ impl SeaOrmUserRepository {
 #[async_trait]
 impl UserRepository for SeaOrmUserRepository {
     async fn create(&self, user: User) -> Result<User, DomainError> {
-        let active_model = user::ActiveModel {
+        let active_model = ActiveModel {
             id: Set(user.id),
             username: Set(user.username),
             email: Set(user.email),
@@ -43,17 +46,31 @@ impl UserRepository for SeaOrmUserRepository {
     }
 
     async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, DomainError> {
-        let _ = (&self.db, id);
-        todo!("реализовать поиск пользователя по ID через SeaORM")
+        let user = DBUser::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(|err| DomainError::Internal(err.to_string()))?;
+
+        Ok(user.map(User::from))
     }
 
     async fn find_by_username(&self, username: &str) -> Result<Option<User>, DomainError> {
-        let _ = (&self.db, username);
-        todo!("реализовать поиск пользователя по имени через SeaORM")
+        let user = DBUser::find()
+            .filter(user::Column::Username.eq(username))
+            .one(&self.db)
+            .await
+            .map_err(|err| DomainError::Internal(err.to_string()))?;
+
+        Ok(user.map(User::from))
     }
 
     async fn exists_by_username(&self, username: &str) -> Result<bool, DomainError> {
-        let _ = (&self.db, username);
-        todo!("реализовать проверку существования пользователя через SeaORM")
+        let user_exists = DBUser::find()
+            .filter(user::Column::Username.eq(username))
+            .exists(&self.db)
+            .await
+            .map_err(|err| DomainError::Internal(err.to_string()))?;
+
+        Ok(user_exists)
     }
 }
