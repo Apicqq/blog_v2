@@ -6,3 +6,4 @@ pub mod database;
 pub mod http;
 /// Инфраструктура хранения данных.
 pub mod persistence;
+pub mod security;
