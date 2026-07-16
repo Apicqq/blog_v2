@@ -1,11 +1,10 @@
 //! DTO постов блога.
 
+use crate::application::blog_service::PostPage;
+use crate::domain::post::{Post, UpdatePost};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
-
-use crate::application::blog_service::PostPage;
-use crate::domain::post::{Post, UpdatePost};
 
 const DEFAULT_POSTS_LIMIT: u64 = 10;
 const MAX_POSTS_LIMIT: u64 = 100;
