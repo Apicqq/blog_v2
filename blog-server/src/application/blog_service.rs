@@ -114,3 +114,247 @@ fn ensure_author(post: &Post, user_id: Uuid) -> Result<(), DomainError> {
 
     Err(DomainError::Forbidden)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use std::sync::Mutex;
+    use std::sync::atomic::{AtomicI64, Ordering};
+
+    use async_trait::async_trait;
+    use chrono::Utc;
+
+    #[derive(Debug)]
+    struct TestPostRepository {
+        posts: Mutex<Vec<Post>>,
+        next_id: AtomicI64,
+    }
+
+    impl Default for TestPostRepository {
+        fn default() -> Self {
+            Self {
+                posts: Mutex::new(Vec::new()),
+                next_id: AtomicI64::new(1),
+            }
+        }
+    }
+
+    impl TestPostRepository {
+        fn with_posts(posts: Vec<Post>) -> Self {
+            let next_id = posts.iter().map(|post| post.id).max().unwrap_or(0) + 1;
+
+            Self {
+                posts: Mutex::new(posts),
+                next_id: AtomicI64::new(next_id),
+            }
+        }
+    }
+
+    #[async_trait]
+    impl PostRepository for TestPostRepository {
+        async fn create(&self, attributes: PostAttributes) -> Result<Post, DomainError> {
+            let id = self.next_id.fetch_add(1, Ordering::SeqCst);
+            let post = Post::from_attributes(id, attributes);
+            self.posts
+                .lock()
+                .expect("posts mutex should not be poisoned")
+                .push(clone_post(&post));
+
+            Ok(post)
+        }
+
+        async fn find_by_id(&self, id: i64) -> Result<Option<Post>, DomainError> {
+            let post = self
+                .posts
+                .lock()
+                .expect("posts mutex should not be poisoned")
+                .iter()
+                .find(|post| post.id == id)
+                .map(clone_post);
+
+            Ok(post)
+        }
+
+        async fn update(&self, post: Post) -> Result<Post, DomainError> {
+            let mut posts = self
+                .posts
+                .lock()
+                .expect("posts mutex should not be poisoned");
+            let Some(existing_post) = posts.iter_mut().find(|existing| existing.id == post.id)
+            else {
+                return Err(DomainError::PostNotFound(post.id));
+            };
+
+            *existing_post = clone_post(&post);
+
+            Ok(post)
+        }
+
+        async fn delete(&self, id: i64) -> Result<(), DomainError> {
+            let mut posts = self
+                .posts
+                .lock()
+                .expect("posts mutex should not be poisoned");
+            let previous_len = posts.len();
+            posts.retain(|post| post.id != id);
+
+            if posts.len() == previous_len {
+                return Err(DomainError::PostNotFound(id));
+            }
+
+            Ok(())
+        }
+
+        async fn list(&self, limit: u64, offset: u64) -> Result<Vec<Post>, DomainError> {
+            let offset = usize::try_from(offset).unwrap_or(usize::MAX);
+            let limit = usize::try_from(limit).unwrap_or(usize::MAX);
+            let posts = self
+                .posts
+                .lock()
+                .expect("posts mutex should not be poisoned")
+                .iter()
+                .skip(offset)
+                .take(limit)
+                .map(clone_post)
+                .collect();
+
+            Ok(posts)
+        }
+
+        async fn count(&self) -> Result<u64, DomainError> {
+            let count = self
+                .posts
+                .lock()
+                .expect("posts mutex should not be poisoned")
+                .len();
+
+            Ok(u64::try_from(count).expect("posts count should fit into u64"))
+        }
+    }
+
+    #[actix_web::test]
+    async fn create_post_persists_author_and_content() {
+        let author_id = Uuid::new_v4();
+        let repository = Arc::new(TestPostRepository::default());
+        let service = BlogService::new(Arc::clone(&repository));
+
+        let post = service
+            .create_post(author_id, "Заголовок".to_string(), "Содержимое".to_string())
+            .await
+            .expect("post should be created");
+
+        assert_eq!(post.id, 1);
+        assert_eq!(post.title, "Заголовок");
+        assert_eq!(post.content, "Содержимое");
+        assert_eq!(post.author_id, author_id);
+        assert_eq!(repository.count().await.expect("count should work"), 1);
+    }
+
+    #[actix_web::test]
+    async fn get_post_returns_not_found_for_missing_post() {
+        let service = BlogService::new(Arc::new(TestPostRepository::default()));
+
+        let error = service
+            .get_post(42)
+            .await
+            .expect_err("missing post should return an error");
+
+        assert!(matches!(error, DomainError::PostNotFound(42)));
+    }
+
+    #[actix_web::test]
+    async fn update_post_rejects_non_author() {
+        let author_id = Uuid::new_v4();
+        let other_user_id = Uuid::new_v4();
+        let post = test_post(1, author_id, "Заголовок", "Содержимое");
+        let service = BlogService::new(Arc::new(TestPostRepository::with_posts(vec![post])));
+
+        let error = service
+            .update_post(
+                other_user_id,
+                1,
+                UpdatePost::new("Новый заголовок".to_string(), "Новый текст".to_string()),
+            )
+            .await
+            .expect_err("non-author should not update post");
+
+        assert!(matches!(error, DomainError::Forbidden));
+    }
+
+    #[actix_web::test]
+    async fn update_post_changes_author_post() {
+        let author_id = Uuid::new_v4();
+        let post = test_post(1, author_id, "Старый заголовок", "Старый текст");
+        let service = BlogService::new(Arc::new(TestPostRepository::with_posts(vec![post])));
+
+        let updated_post = service
+            .update_post(
+                author_id,
+                1,
+                UpdatePost::new("Новый заголовок".to_string(), "Новый текст".to_string()),
+            )
+            .await
+            .expect("author should update post");
+
+        assert_eq!(updated_post.title, "Новый заголовок");
+        assert_eq!(updated_post.content, "Новый текст");
+        assert!(updated_post.updated_at.is_some());
+    }
+
+    #[actix_web::test]
+    async fn delete_post_rejects_non_author() {
+        let author_id = Uuid::new_v4();
+        let other_user_id = Uuid::new_v4();
+        let post = test_post(1, author_id, "Заголовок", "Содержимое");
+        let service = BlogService::new(Arc::new(TestPostRepository::with_posts(vec![post])));
+
+        let error = service
+            .delete_post(other_user_id, 1)
+            .await
+            .expect_err("non-author should not delete post");
+
+        assert!(matches!(error, DomainError::Forbidden));
+    }
+
+    #[actix_web::test]
+    async fn list_posts_returns_page_and_total() {
+        let author_id = Uuid::new_v4();
+        let posts = vec![
+            test_post(1, author_id, "Первый", "Текст"),
+            test_post(2, author_id, "Второй", "Текст"),
+        ];
+        let service = BlogService::new(Arc::new(TestPostRepository::with_posts(posts)));
+
+        let page = service
+            .list_posts(1, 1)
+            .await
+            .expect("posts page should be returned");
+
+        assert_eq!(page.total, 2);
+        assert_eq!(page.posts.len(), 1);
+        assert_eq!(page.posts[0].id, 2);
+    }
+
+    fn test_post(id: i64, author_id: Uuid, title: &str, content: &str) -> Post {
+        Post {
+            id,
+            title: title.to_string(),
+            content: content.to_string(),
+            author_id,
+            created_at: Utc::now(),
+            updated_at: None,
+        }
+    }
+
+    fn clone_post(post: &Post) -> Post {
+        Post {
+            id: post.id,
+            title: post.title.clone(),
+            content: post.content.clone(),
+            author_id: post.author_id,
+            created_at: post.created_at,
+            updated_at: post.updated_at,
+        }
+    }
+}
