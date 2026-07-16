@@ -18,10 +18,10 @@ impl ResponseError for DomainError {
     fn status_code(&self) -> StatusCode {
         match self {
             DomainError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            DomainError::Validation(_) | DomainError::InvalidCredentials => StatusCode::BAD_REQUEST,
+            DomainError::Validation(_) => StatusCode::BAD_REQUEST,
+            DomainError::InvalidCredentials | DomainError::Unauthorized => StatusCode::UNAUTHORIZED,
             DomainError::Forbidden => StatusCode::FORBIDDEN,
             DomainError::PostNotFound(_) | DomainError::UserNotFound(_) => StatusCode::NOT_FOUND,
-            DomainError::Unauthorized => StatusCode::UNAUTHORIZED,
             DomainError::UserAlreadyExists(_) => StatusCode::CONFLICT,
         }
     }
@@ -71,6 +71,13 @@ mod tests {
         let error = DomainError::PostNotFound(42);
 
         assert_eq!(error.status_code(), StatusCode::NOT_FOUND);
+    }
+
+    #[test]
+    fn invalid_credentials_maps_to_unauthorized() {
+        let error = DomainError::InvalidCredentials;
+
+        assert_eq!(error.status_code(), StatusCode::UNAUTHORIZED);
     }
 
     #[test]
