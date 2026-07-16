@@ -2,6 +2,8 @@
 
 use std::sync::Arc;
 
+use tracing::{instrument, warn};
+
 use crate::application::ports::password_hasher::PasswordHasher;
 use crate::application::ports::token_service::TokenService;
 use crate::application::ports::user_repository::UserRepository;
@@ -55,11 +57,13 @@ where
     ///
     /// Возвращает доменную ошибку, если пользователь уже существует, пароль не удалось
     /// захешировать, пользователь не может быть сохранен или токен не удалось выпустить.
+    #[instrument(skip(self, registration), fields(username = %registration.username))]
     pub async fn register(
         &self,
         registration: RegistrationData,
     ) -> Result<AuthSession, DomainError> {
         if self.repo.exists_by_username(&registration.username).await? {
+            warn!("registration rejected: user already exists");
             return Err(DomainError::UserAlreadyExists(registration.username));
         }
 
@@ -77,18 +81,23 @@ where
     ///
     /// Возвращает доменную ошибку, если пользователь не найден, пароль неверный или токен не
     /// удалось выпустить.
+    #[instrument(skip(self, credentials), fields(username = %credentials.username))]
     pub async fn login(&self, credentials: LoginCredentials) -> Result<AuthSession, DomainError> {
         let user = self
             .repo
             .find_by_username(&credentials.username)
             .await?
-            .ok_or(DomainError::InvalidCredentials)?;
+            .ok_or_else(|| {
+                warn!("login rejected: invalid credentials");
+                DomainError::InvalidCredentials
+            })?;
 
         let is_valid = self
             .password_hasher
             .verify_password(&credentials.password, &user.password_hash)?;
 
         if !is_valid {
+            warn!("login rejected: invalid credentials");
             return Err(DomainError::InvalidCredentials);
         }
 

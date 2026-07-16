@@ -6,4 +6,7 @@ pub mod database;
 pub mod http;
 /// Инфраструктура хранения данных.
 pub mod persistence;
+/// Адаптеры безопасности.
 pub mod security;
+/// Настройка логирования и трассировки.
+pub mod telemetry;
