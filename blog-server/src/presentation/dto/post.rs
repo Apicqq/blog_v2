@@ -1,39 +1,37 @@
 //! DTO постов блога.
 
 use crate::application::blog_service::PostPage;
+use crate::domain::errors::DomainError;
 use crate::domain::post::{Post, UpdatePost};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use validator::Validate;
 
 const DEFAULT_POSTS_LIMIT: u64 = 10;
 const MAX_POSTS_LIMIT: u64 = 100;
 
 /// Запрос создания поста.
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 pub struct CreatePostRequest {
     /// Заголовок поста.
-    #[validate(length(min = 3, max = 255))]
     pub title: String,
     /// Содержимое поста.
-    #[validate(length(min = 1, max = 10_000))]
     pub content: String,
 }
 
 /// Запрос обновления поста.
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 pub struct UpdatePostRequest {
     /// Новый заголовок поста.
-    #[validate(length(min = 3, max = 255))]
     pub title: String,
     /// Новое содержимое поста.
-    #[validate(length(min = 1, max = 10_000))]
     pub content: String,
 }
 
-impl From<UpdatePostRequest> for UpdatePost {
-    fn from(request: UpdatePostRequest) -> Self {
-        Self::new(request.title.trim().to_string(), request.content)
+impl TryFrom<UpdatePostRequest> for UpdatePost {
+    type Error = DomainError;
+
+    fn try_from(request: UpdatePostRequest) -> Result<Self, Self::Error> {
+        Self::new(&request.title, request.content)
     }
 }
 

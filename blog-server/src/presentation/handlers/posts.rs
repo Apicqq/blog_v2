@@ -1,8 +1,5 @@
 //! HTTP-handlers постов блога.
 
-use actix_web::{HttpResponse, delete, get, guard, post, put, web};
-use validator::Validate;
-
 use crate::application::blog_service::BlogService;
 use crate::domain::errors::DomainError;
 use crate::infrastructure::persistence::repositories::sea_orm_post_repository::SeaOrmPostRepository;
@@ -10,6 +7,7 @@ use crate::presentation::auth::AuthenticatedUser;
 use crate::presentation::dto::post::{
     CreatePostRequest, ListPostsQuery, ListPostsResponse, PostResponse, UpdatePostRequest,
 };
+use actix_web::{HttpResponse, delete, get, guard, post, put, web};
 
 type BlogPostService = BlogService<SeaOrmPostRepository>;
 
@@ -66,15 +64,8 @@ async fn create_post_handler(
     payload: web::Json<CreatePostRequest>,
 ) -> Result<HttpResponse, DomainError> {
     let payload = payload.into_inner();
-    payload
-        .validate()
-        .map_err(|err| DomainError::Validation(err.to_string()))?;
     let post = service
-        .create_post(
-            user.user_id,
-            payload.title.trim().to_string(),
-            payload.content,
-        )
+        .create_post(user.user_id, payload.title, payload.content)
         .await?;
 
     Ok(HttpResponse::Created().json(PostResponse::from(post)))
@@ -89,11 +80,8 @@ async fn update_post_handler(
     payload: web::Json<UpdatePostRequest>,
 ) -> Result<HttpResponse, DomainError> {
     let payload = payload.into_inner();
-    payload
-        .validate()
-        .map_err(|err| DomainError::Validation(err.to_string()))?;
     let post = service
-        .update_post(user.user_id, post_id.into_inner(), payload.into())
+        .update_post(user.user_id, post_id.into_inner(), payload.try_into()?)
         .await?;
 
     Ok(HttpResponse::Ok().json(PostResponse::from(post)))

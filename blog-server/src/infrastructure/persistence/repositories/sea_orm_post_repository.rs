@@ -29,11 +29,12 @@ impl SeaOrmPostRepository {
 #[async_trait]
 impl PostRepository for SeaOrmPostRepository {
     async fn create(&self, attributes: PostAttributes) -> Result<Post, DomainError> {
+        let (title, content, author_id) = attributes.into_parts();
         let new_post = ActiveModel {
             id: NotSet,
-            title: Set(attributes.title),
-            content: Set(attributes.content),
-            author_id: Set(attributes.author_id),
+            title: Set(title),
+            content: Set(content),
+            author_id: Set(author_id),
             created_at: Set(Utc::now()),
             updated_at: Set(None),
         };

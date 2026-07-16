@@ -44,9 +44,9 @@ where
         title: String,
         content: String,
     ) -> Result<Post, DomainError> {
-        self.repo
-            .create(PostAttributes::new(title, content, author_id))
-            .await
+        let attributes = PostAttributes::new(&title, content, author_id)?;
+
+        self.repo.create(attributes).await
     }
 
     /// Возвращает пост по идентификатору.
@@ -252,6 +252,22 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn create_post_rejects_invalid_title() {
+        let service = BlogService::new(Arc::new(TestPostRepository::default()));
+
+        let error = service
+            .create_post(
+                Uuid::new_v4(),
+                "  a  ".to_string(),
+                "Содержимое".to_string(),
+            )
+            .await
+            .expect_err("invalid title should return an error");
+
+        assert!(matches!(error, DomainError::Validation(_)));
+    }
+
+    #[actix_web::test]
     async fn get_post_returns_not_found_for_missing_post() {
         let service = BlogService::new(Arc::new(TestPostRepository::default()));
 
@@ -274,7 +290,8 @@ mod tests {
             .update_post(
                 other_user_id,
                 1,
-                UpdatePost::new("Новый заголовок".to_string(), "Новый текст".to_string()),
+                UpdatePost::new("Новый заголовок", "Новый текст".to_string())
+                    .expect("update should be valid"),
             )
             .await
             .expect_err("non-author should not update post");
@@ -292,7 +309,8 @@ mod tests {
             .update_post(
                 author_id,
                 1,
-                UpdatePost::new("Новый заголовок".to_string(), "Новый текст".to_string()),
+                UpdatePost::new("Новый заголовок", "Новый текст".to_string())
+                    .expect("update should be valid"),
             )
             .await
             .expect("author should update post");
