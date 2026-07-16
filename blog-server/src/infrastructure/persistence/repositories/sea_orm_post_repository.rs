@@ -3,8 +3,8 @@
 use async_trait::async_trait;
 use chrono::Utc;
 use sea_orm::{
-    ActiveModelTrait, DatabaseConnection, EntityTrait, NotSet, QueryOrder, QuerySelect, Set,
-    Unchanged,
+    ActiveModelTrait, DatabaseConnection, EntityTrait, NotSet, PaginatorTrait, QueryOrder,
+    QuerySelect, Set, Unchanged,
 };
 
 use crate::application::ports::post_repository::PostRepository;
@@ -82,5 +82,11 @@ impl PostRepository for SeaOrmPostRepository {
             .await?;
 
         Ok(posts.into_iter().map(Post::from).collect())
+    }
+
+    async fn count(&self) -> Result<u64, DomainError> {
+        let count = DBPost::find().count(&self.db).await?;
+
+        Ok(count)
     }
 }

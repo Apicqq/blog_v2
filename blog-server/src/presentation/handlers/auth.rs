@@ -8,7 +8,7 @@ use crate::domain::errors::DomainError;
 use crate::infrastructure::persistence::repositories::sea_orm_user_repository::SeaOrmUserRepository;
 use crate::infrastructure::security::argon2_password_hasher::Argon2PasswordHasher;
 use crate::infrastructure::security::jwt_token_service::JwtTokenService;
-use crate::presentation::dto::{AuthResponse, LoginRequest, RegisterRequest};
+use crate::presentation::dto::auth::{AuthResponse, LoginRequest, RegisterRequest};
 
 type BlogAuthService = AuthService<SeaOrmUserRepository, Argon2PasswordHasher, JwtTokenService>;
 

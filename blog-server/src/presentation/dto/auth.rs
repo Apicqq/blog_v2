@@ -1,4 +1,4 @@
-//! DTO HTTP-слоя серверного приложения.
+//! DTO аутентификации.
 
 use serde::{Deserialize, Serialize};
 use validator::Validate;

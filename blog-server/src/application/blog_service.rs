@@ -8,6 +8,15 @@ use crate::application::ports::post_repository::PostRepository;
 use crate::domain::errors::DomainError;
 use crate::domain::post::{Post, PostAttributes, UpdatePost};
 
+/// Страница постов.
+#[derive(Debug)]
+pub struct PostPage {
+    /// Посты текущей страницы.
+    pub posts: Vec<Post>,
+    /// Общее количество постов.
+    pub total: u64,
+}
+
 /// Сервис сценариев блога.
 #[derive(Debug, Clone)]
 pub struct BlogService<R> {
@@ -90,8 +99,11 @@ where
     /// # Errors
     ///
     /// Возвращает доменную ошибку, если хранилище недоступно.
-    pub async fn list_posts(&self, limit: u64, offset: u64) -> Result<Vec<Post>, DomainError> {
-        self.repo.list(limit, offset).await
+    pub async fn list_posts(&self, limit: u64, offset: u64) -> Result<PostPage, DomainError> {
+        let posts = self.repo.list(limit, offset).await?;
+        let total = self.repo.count().await?;
+
+        Ok(PostPage { posts, total })
     }
 }
 
