@@ -90,7 +90,8 @@ fn unique_constraint_error(err: &DbErr) -> Option<DomainError> {
         return None;
     };
 
-    if database_error.code().as_deref() != Some("23505") { // unique violation
+    if database_error.code().as_deref() != Some("23505") {
+        // unique violation
         return None;
     }
 
