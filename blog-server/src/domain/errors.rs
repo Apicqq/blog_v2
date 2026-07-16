@@ -25,9 +25,13 @@ pub enum DomainError {
     #[error("user not found: {0}")]
     UserNotFound(String),
 
-    /// Пользователь уже существует.
-    #[error("user already exists: {0}")]
-    UserAlreadyExists(String),
+    /// Имя пользователя уже занято.
+    #[error("username already taken")]
+    UsernameAlreadyTaken,
+
+    /// Электронная почта уже занята.
+    #[error("email already taken")]
+    EmailAlreadyTaken,
 
     /// Переданы неверные учетные данные.
     #[error("username or password is incorrect")]

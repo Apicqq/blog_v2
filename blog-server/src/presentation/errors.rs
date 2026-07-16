@@ -22,7 +22,9 @@ impl ResponseError for DomainError {
             DomainError::InvalidCredentials | DomainError::Unauthorized => StatusCode::UNAUTHORIZED,
             DomainError::Forbidden => StatusCode::FORBIDDEN,
             DomainError::PostNotFound(_) | DomainError::UserNotFound(_) => StatusCode::NOT_FOUND,
-            DomainError::UserAlreadyExists(_) => StatusCode::CONFLICT,
+            DomainError::UsernameAlreadyTaken | DomainError::EmailAlreadyTaken => {
+                StatusCode::CONFLICT
+            }
         }
     }
 
@@ -30,12 +32,12 @@ impl ResponseError for DomainError {
         let message = self.to_string();
         let details = match self {
             DomainError::Validation(message) => Some(json!({ "message": message })),
-            DomainError::Internal(_) => None,
+            DomainError::Internal(_)
+            | DomainError::UserNotFound(_)
+            | DomainError::UsernameAlreadyTaken
+            | DomainError::EmailAlreadyTaken => None,
             DomainError::Forbidden => Some(json!({ "reason": "forbidden" })),
             DomainError::Unauthorized => Some(json!({ "reason": "unauthorized" })),
-            DomainError::UserNotFound(username) | DomainError::UserAlreadyExists(username) => {
-                Some(json!({ "username": username }))
-            }
             DomainError::InvalidCredentials => Some(json!({ "reason": "invalid_credentials" })),
             DomainError::PostNotFound(post_id) => Some(json!({ "post_id": post_id })),
         };
@@ -60,10 +62,25 @@ mod tests {
     }
 
     #[test]
-    fn user_already_exists_maps_to_conflict() {
-        let error = DomainError::UserAlreadyExists("alice".to_string());
+    fn username_already_taken_maps_to_conflict() {
+        let error = DomainError::UsernameAlreadyTaken;
 
         assert_eq!(error.status_code(), StatusCode::CONFLICT);
+    }
+
+    #[actix_web::test]
+    async fn email_already_taken_response_has_no_duplicated_details() {
+        let error = DomainError::EmailAlreadyTaken;
+        let response = error.error_response();
+        let status = response.status();
+        let body = actix_web::body::to_bytes(response.into_body())
+            .await
+            .expect("body should be readable");
+        let body: serde_json::Value =
+            serde_json::from_slice(&body).expect("body should be valid json");
+
+        assert_eq!(status, StatusCode::CONFLICT);
+        assert_eq!(body, json!({ "error": "email already taken" }));
     }
 
     #[test]

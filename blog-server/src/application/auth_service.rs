@@ -63,8 +63,13 @@ where
         registration: RegistrationData,
     ) -> Result<AuthSession, DomainError> {
         if self.repo.exists_by_username(&registration.username).await? {
-            warn!("registration rejected: user already exists");
-            return Err(DomainError::UserAlreadyExists(registration.username));
+            warn!("registration rejected: username already exists");
+            return Err(DomainError::UsernameAlreadyTaken);
+        }
+
+        if self.repo.exists_by_email(&registration.email).await? {
+            warn!("registration rejected: email already exists");
+            return Err(DomainError::EmailAlreadyTaken);
         }
 
         let password_hash = self.password_hasher.hash_password(&registration.password)?;
