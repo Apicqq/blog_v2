@@ -38,31 +38,31 @@ mod tests {
 
     use crate::application::ports::token_service::TokenService;
     use crate::infrastructure::security::jwt_token_service::JwtTokenService;
-    use crate::presentation::middlewares::jwt_auth::JwtAuthMiddleware;
+    use crate::presentation::middlewares::jwt_auth::jwt_validator;
+    use actix_web_httpauth::middleware::HttpAuthentication;
 
     const JWT_SECRET: &str = "test-secret";
+
+    macro_rules! protected_app {
+        ($token_service:expr) => {
+            App::new().service(
+                web::scope("")
+                    .app_data(web::Data::new($token_service))
+                    .wrap(HttpAuthentication::bearer(jwt_validator))
+                    .configure(configure_protected_routes),
+            )
+        };
+    }
 
     #[actix_web::test]
     async fn current_user_requires_authorization_header() {
         let token_service = JwtTokenService::new(JWT_SECRET.to_string(), Duration::minutes(15));
-        let app = test::init_service(
-            App::new().service(
-                web::scope("")
-                    .wrap(JwtAuthMiddleware::new(token_service))
-                    .configure(configure_protected_routes),
-            ),
-        )
-        .await;
+        let app = test::init_service(protected_app!(token_service)).await;
 
         let request = test::TestRequest::get().uri("/me").to_request();
-        let error = test::try_call_service(&app, request)
-            .await
-            .expect_err("request should be rejected");
+        let response = test::call_service(&app, request).await;
 
-        assert_eq!(
-            error.as_response_error().status_code(),
-            StatusCode::UNAUTHORIZED
-        );
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 
     #[actix_web::test]
@@ -71,14 +71,7 @@ mod tests {
         let token = token_service
             .issue_new(Uuid::new_v4())
             .expect("token should be issued");
-        let app = test::init_service(
-            App::new().service(
-                web::scope("")
-                    .wrap(JwtAuthMiddleware::new(token_service))
-                    .configure(configure_protected_routes),
-            ),
-        )
-        .await;
+        let app = test::init_service(protected_app!(token_service)).await;
 
         let request = test::TestRequest::get()
             .uri("/me")

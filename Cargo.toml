@@ -58,3 +58,4 @@ anyhow = "1"
 dotenvy = "0.15"
 validator = { version = "0.20", features = ["derive"] }
 futures-util = "0.3"
+actix-web-httpauth = "0.8"

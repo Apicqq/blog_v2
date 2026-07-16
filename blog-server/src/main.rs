@@ -12,6 +12,7 @@ pub mod domain;
 pub mod infrastructure;
 pub mod presentation;
 
+use actix_web_httpauth::middleware::HttpAuthentication;
 use application::auth_service::AuthService;
 use application::blog_service::BlogService;
 use blog_proto as _;
@@ -22,11 +23,9 @@ use infrastructure::persistence::repositories::sea_orm_user_repository::SeaOrmUs
 use infrastructure::security::argon2_password_hasher::Argon2PasswordHasher;
 use infrastructure::security::jwt_token_service::JwtTokenService;
 use presentation::handlers::auth::configure_auth_routes;
-use presentation::handlers::posts::{
-    configure_protected_post_routes, configure_public_post_routes,
-};
+use presentation::handlers::posts::configure_post_routes;
 use presentation::handlers::protected::configure_protected_routes;
-use presentation::middlewares::jwt_auth::JwtAuthMiddleware;
+use presentation::middlewares::jwt_auth::jwt_validator;
 
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
@@ -48,7 +47,7 @@ async fn main() -> anyhow::Result<()> {
         config.jwt_secret.clone(),
         Duration::seconds(config.jwt_ttl_seconds),
     );
-    let jwt_middleware = JwtAuthMiddleware::new(token_service.clone());
+    let token_service_data = web::Data::new(token_service.clone());
     let auth_service = web::Data::new(AuthService::new(
         Arc::new(user_repository),
         Arc::new(password_hasher),
@@ -63,15 +62,15 @@ async fn main() -> anyhow::Result<()> {
         App::new()
             .app_data(auth_service.clone())
             .app_data(blog_service.clone())
+            .app_data(token_service_data.clone())
             .service(
                 web::scope("/api")
                     .configure(configure_auth_routes)
-                    .configure(configure_public_post_routes)
+                    .configure(configure_post_routes)
                     .service(
                         web::scope("")
-                            .wrap(jwt_middleware.clone())
-                            .configure(configure_protected_routes)
-                            .configure(configure_protected_post_routes),
+                            .wrap(HttpAuthentication::bearer(jwt_validator))
+                            .configure(configure_protected_routes),
                     ),
             )
     })
