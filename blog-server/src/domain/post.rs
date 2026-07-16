@@ -6,7 +6,7 @@ use uuid::Uuid;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Post {
     /// ID поста.
-    pub id: u64,
+    pub id: i64, // синхронизирую с БД чтобы не плодить TryFrom
     /// Заголовок поста.
     pub title: String,
     /// Содержимое поста.
@@ -22,7 +22,7 @@ pub struct Post {
 impl Post {
     /// Создает пост из существенных данных и присвоенного ID.
     #[must_use]
-    pub fn from_attributes(id: u64, attributes: PostAttributes) -> Self {
+    pub fn from_attributes(id: i64, attributes: PostAttributes) -> Self {
         Self {
             id,
             title: attributes.title,

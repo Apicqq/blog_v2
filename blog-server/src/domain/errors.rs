@@ -35,5 +35,5 @@ pub enum DomainError {
 
     /// Пост не найден.
     #[error("post not found: {0}")]
-    PostNotFound(u64),
+    PostNotFound(i64),
 }

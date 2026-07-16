@@ -4,3 +4,5 @@
 pub mod database;
 /// HTTP-адаптеры серверного приложения.
 pub mod http;
+/// Инфраструктура хранения данных.
+pub mod persistence;
