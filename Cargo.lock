@@ -532,10 +532,12 @@ name = "blog-server"
 version = "0.1.0"
 dependencies = [
  "actix-web",
+ "anyhow",
  "argon2",
  "async-trait",
  "blog-proto",
  "chrono",
+ "dotenvy",
  "jsonwebtoken",
  "rand_core 0.6.4",
  "sea-orm",
