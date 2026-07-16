@@ -65,4 +65,13 @@ impl UserRepository for SeaOrmUserRepository {
 
         Ok(user_exists)
     }
+
+    async fn exists_by_email(&self, email: &str) -> Result<bool, DomainError> {
+        let user_exists = DBUser::find()
+            .filter(user::Column::Email.eq(email))
+            .exists(&self.db)
+            .await?;
+
+        Ok(user_exists)
+    }
 }

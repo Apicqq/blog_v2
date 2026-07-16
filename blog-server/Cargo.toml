@@ -23,3 +23,4 @@ tracing-subscriber.workspace = true
 jsonwebtoken.workspace = true
 anyhow.workspace = true
 dotenvy.workspace = true
+validator.workspace = true

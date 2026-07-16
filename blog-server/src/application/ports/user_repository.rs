@@ -36,4 +36,11 @@ pub trait UserRepository {
     ///
     /// Возвращает доменную ошибку, если хранилище недоступно.
     async fn exists_by_username(&self, username: &str) -> Result<bool, DomainError>;
+
+    /// Проверяет существование пользователя с указанной электронной почтой.
+    ///
+    /// # Errors
+    ///
+    /// Возвращает доменную ошибку, если хранилище недоступно.
+    async fn exists_by_email(&self, email: &str) -> Result<bool, DomainError>;
 }

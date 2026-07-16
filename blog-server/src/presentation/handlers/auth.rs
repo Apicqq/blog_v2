@@ -1,10 +1,10 @@
 //! HTTP-handlers аутентификации.
 
 use actix_web::{HttpResponse, post, web};
+use validator::Validate;
 
 use crate::application::auth_service::AuthService;
 use crate::domain::errors::DomainError;
-use crate::domain::user::{LoginCredentials, RegistrationData};
 use crate::infrastructure::persistence::repositories::sea_orm_user_repository::SeaOrmUserRepository;
 use crate::infrastructure::security::argon2_password_hasher::Argon2PasswordHasher;
 use crate::infrastructure::security::jwt_token_service::JwtTokenService;
@@ -24,7 +24,10 @@ async fn register(
     payload: web::Json<RegisterRequest>,
 ) -> Result<HttpResponse, DomainError> {
     let payload = payload.into_inner();
-    let registration = RegistrationData::new(payload.username, payload.email, payload.password);
+    payload
+        .validate()
+        .map_err(|err| DomainError::Validation(err.to_string()))?;
+    let registration = payload.into();
     let session = service.register(registration).await?;
 
     Ok(HttpResponse::Created().json(AuthResponse::from(session)))
@@ -37,7 +40,10 @@ async fn login(
     payload: web::Json<LoginRequest>,
 ) -> Result<HttpResponse, DomainError> {
     let payload = payload.into_inner();
-    let credentials = LoginCredentials::new(payload.username, payload.password);
+    payload
+        .validate()
+        .map_err(|err| DomainError::Validation(err.to_string()))?;
+    let credentials = payload.into();
     let session = service.login(credentials).await?;
 
     Ok(HttpResponse::Ok().json(AuthResponse::from(session)))
