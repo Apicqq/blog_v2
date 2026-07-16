@@ -2,8 +2,8 @@
 
 use async_trait::async_trait;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
-    Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait,
+    QueryFilter, RuntimeErr, Set, SqlxError,
 };
 use uuid::Uuid;
 
@@ -37,7 +37,10 @@ impl UserRepository for SeaOrmUserRepository {
             created_at: Set(user.created_at),
         };
 
-        let model = active_model.insert(&self.db).await?;
+        let model = active_model
+            .insert(&self.db)
+            .await
+            .map_err(map_user_create_error)?;
 
         Ok(User::from(model))
     }
@@ -73,5 +76,27 @@ impl UserRepository for SeaOrmUserRepository {
             .await?;
 
         Ok(user_exists)
+    }
+}
+
+fn map_user_create_error(err: DbErr) -> DomainError {
+    unique_constraint_error(&err).unwrap_or_else(|| err.into())
+}
+
+fn unique_constraint_error(err: &DbErr) -> Option<DomainError> {
+    let (DbErr::Exec(RuntimeErr::SqlxError(SqlxError::Database(database_error)))
+    | DbErr::Query(RuntimeErr::SqlxError(SqlxError::Database(database_error)))) = err
+    else {
+        return None;
+    };
+
+    if database_error.code().as_deref() != Some("23505") { // unique violation
+        return None;
+    }
+
+    match database_error.constraint()? {
+        "users_username_key" => Some(DomainError::UsernameAlreadyTaken),
+        "users_email_key" => Some(DomainError::EmailAlreadyTaken),
+        _ => None,
     }
 }
