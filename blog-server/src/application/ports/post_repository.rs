@@ -42,4 +42,11 @@ pub trait PostRepository {
     ///
     /// Возвращает доменную ошибку, если хранилище недоступно.
     async fn list(&self, limit: u64, offset: u64) -> Result<Vec<Post>, DomainError>;
+
+    /// Возвращает общее количество постов.
+    ///
+    /// # Errors
+    ///
+    /// Возвращает доменную ошибку, если хранилище недоступно.
+    async fn count(&self) -> Result<u64, DomainError>;
 }

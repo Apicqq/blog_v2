@@ -12,7 +12,7 @@ struct AuthenticationCheckResponse {
     authenticated: bool,
 }
 
-/// Настраивает protected routes.
+/// Настраивает protected routes для тестового auth сервиса.
 pub fn configure_protected_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(current_user);
 }

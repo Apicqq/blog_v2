@@ -3,8 +3,8 @@
 use async_trait::async_trait;
 use chrono::Utc;
 use sea_orm::{
-    ActiveModelTrait, DatabaseConnection, EntityTrait, NotSet, QueryOrder, QuerySelect, Set,
-    Unchanged,
+    ActiveModelTrait, DatabaseConnection, EntityTrait, NotSet, PaginatorTrait, QueryOrder,
+    QuerySelect, Set, Unchanged,
 };
 
 use crate::application::ports::post_repository::PostRepository;
@@ -29,11 +29,12 @@ impl SeaOrmPostRepository {
 #[async_trait]
 impl PostRepository for SeaOrmPostRepository {
     async fn create(&self, attributes: PostAttributes) -> Result<Post, DomainError> {
+        let (title, content, author_id) = attributes.into_parts();
         let new_post = ActiveModel {
             id: NotSet,
-            title: Set(attributes.title),
-            content: Set(attributes.content),
-            author_id: Set(attributes.author_id),
+            title: Set(title),
+            content: Set(content),
+            author_id: Set(author_id),
             created_at: Set(Utc::now()),
             updated_at: Set(None),
         };
@@ -82,5 +83,11 @@ impl PostRepository for SeaOrmPostRepository {
             .await?;
 
         Ok(posts.into_iter().map(Post::from).collect())
+    }
+
+    async fn count(&self) -> Result<u64, DomainError> {
+        let count = DBPost::find().count(&self.db).await?;
+
+        Ok(count)
     }
 }

@@ -1,10 +1,9 @@
-//! DTO HTTP-слоя серверного приложения.
-
-use serde::{Deserialize, Serialize};
-use validator::Validate;
+//! DTO аутентификации.
 
 use crate::application::auth_service::AuthSession;
 use crate::domain::user::{LoginCredentials, RegistrationData, User};
+use serde::{Deserialize, Serialize};
+use validator::Validate;
 
 /// Запрос регистрации пользователя.
 #[derive(Debug, Deserialize, Validate)]

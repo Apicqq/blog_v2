@@ -27,6 +27,7 @@ impl JwtTokenService {
 struct Claims {
     sub: String,
     exp: usize,
+    // FIXME add iat
 }
 
 impl TokenService for JwtTokenService {
