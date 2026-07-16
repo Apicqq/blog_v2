@@ -20,6 +20,8 @@ use infrastructure::persistence::repositories::sea_orm_user_repository::SeaOrmUs
 use infrastructure::security::argon2_password_hasher::Argon2PasswordHasher;
 use infrastructure::security::jwt_token_service::JwtTokenService;
 use presentation::handlers::auth::configure_auth_routes;
+use presentation::handlers::protected::configure_protected_routes;
+use presentation::middlewares::jwt_auth::JwtAuthMiddleware;
 
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
@@ -40,6 +42,7 @@ async fn main() -> anyhow::Result<()> {
         config.jwt_secret.clone(),
         Duration::seconds(config.jwt_ttl_seconds),
     );
+    let jwt_middleware = JwtAuthMiddleware::new(token_service.clone());
     let auth_service = web::Data::new(AuthService::new(
         Arc::new(user_repository),
         Arc::new(password_hasher),
@@ -50,9 +53,13 @@ async fn main() -> anyhow::Result<()> {
     info!(address = %bind_address, "starting HTTP server");
 
     HttpServer::new(move || {
-        App::new()
-            .app_data(auth_service.clone())
-            .service(web::scope("/api").configure(configure_auth_routes))
+        App::new().app_data(auth_service.clone()).service(
+            web::scope("/api").configure(configure_auth_routes).service(
+                web::scope("")
+                    .wrap(jwt_middleware.clone())
+                    .configure(configure_protected_routes),
+            ),
+        )
     })
     .bind(&bind_address)
     .with_context(|| format!("failed to bind HTTP server to {bind_address}"))?

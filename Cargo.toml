@@ -57,3 +57,4 @@ jsonwebtoken = { version = "10", default-features = false, features = ["rust_cry
 anyhow = "1"
 dotenvy = "0.15"
 validator = { version = "0.20", features = ["derive"] }
+futures-util = "0.3"

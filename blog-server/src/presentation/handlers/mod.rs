@@ -2,3 +2,5 @@
 
 /// Handlers аутентификации.
 pub mod auth;
+/// Protected/debug handlers.
+pub mod protected;
