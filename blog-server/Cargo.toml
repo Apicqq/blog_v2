@@ -9,6 +9,7 @@ workspace = true
 [dependencies]
 blog-proto.workspace = true
 tonic.workspace = true
+tonic-reflection.workspace = true
 tokio.workspace = true
 uuid.workspace = true
 chrono.workspace = true

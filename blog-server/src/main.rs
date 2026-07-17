@@ -16,6 +16,7 @@ pub mod presentation;
 use actix_web_httpauth::middleware::HttpAuthentication;
 use application::auth_service::AuthService;
 use application::blog_service::BlogService;
+use blog_proto::generated::FILE_DESCRIPTOR_SET;
 use blog_proto::generated::blog_service_server::BlogServiceServer;
 use infrastructure::config::AppConfig;
 use infrastructure::database::db_connection;
@@ -90,8 +91,13 @@ async fn main() -> anyhow::Result<()> {
     .with_context(|| format!("failed to bind HTTP server to {http_bind_address}"))?
     .run();
 
+    let reflection_grpc_service = tonic_reflection::server::Builder::configure()
+        .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
+        .build_v1()?;
+
     let grpc_server = Server::builder()
         .add_service(BlogServiceServer::new(grpc_service))
+        .add_service(reflection_grpc_service)
         .serve(grpc_socket_address);
 
     tokio::select! {
