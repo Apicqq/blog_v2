@@ -12,3 +12,7 @@ thiserror.workspace = true
 reqwest.workspace = true
 tonic.workspace = true
 serde.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

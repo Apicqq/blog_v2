@@ -201,3 +201,45 @@ enum ActiveTransport<'a> {
     Http(&'a HttpClient),
     Grpc(&'a GrpcClient),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn test_client() -> BlogClient {
+        BlogClient::new(Transport::Http("http://localhost:8080".to_string()))
+            .await
+            .expect("HTTP client should be created")
+    }
+
+    #[tokio::test]
+    async fn new_http_client_keeps_transport_and_has_no_token() {
+        let client = test_client().await;
+
+        assert_eq!(
+            client.transport(),
+            &Transport::Http("http://localhost:8080".to_string())
+        );
+        assert!(client.http_client().is_some());
+        assert!(client.grpc_client().is_none());
+        assert_eq!(client.get_token(), None);
+    }
+
+    #[tokio::test]
+    async fn protected_methods_require_token() {
+        let client = test_client().await;
+
+        let result = client.create_post("title", "content").await;
+
+        assert!(matches!(result, Err(BlogClientError::MissingToken)));
+    }
+
+    #[tokio::test]
+    async fn set_token_updates_current_token() {
+        let mut client = test_client().await;
+
+        client.set_token("token".to_string());
+
+        assert_eq!(client.get_token(), Some("token"));
+    }
+}
