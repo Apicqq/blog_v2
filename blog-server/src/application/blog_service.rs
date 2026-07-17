@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 
+use tracing::{debug, info, instrument, warn};
 use uuid::Uuid;
 
 use crate::application::ports::post_repository::PostRepository;
@@ -38,6 +39,7 @@ where
     /// # Errors
     ///
     /// Возвращает доменную ошибку, если пост не может быть сохранен.
+    #[instrument(skip(self, title, content), fields(author_id = %author_id))]
     pub async fn create_post(
         &self,
         author_id: Uuid,
@@ -45,8 +47,11 @@ where
         content: String,
     ) -> Result<Post, DomainError> {
         let attributes = PostAttributes::new(&title, content, author_id)?;
+        let post = self.repo.create(attributes).await?;
 
-        self.repo.create(attributes).await
+        info!(post_id = post.id, author_id = %post.author_id, "post created");
+
+        Ok(post)
     }
 
     /// Возвращает пост по идентификатору.
@@ -54,11 +59,17 @@ where
     /// # Errors
     ///
     /// Возвращает `PostNotFound`, если пост не найден.
+    #[instrument(skip(self), fields(post_id = post_id))]
     pub async fn get_post(&self, post_id: i64) -> Result<Post, DomainError> {
-        self.repo
+        let post = self
+            .repo
             .find_by_id(post_id)
             .await?
-            .ok_or(DomainError::PostNotFound(post_id))
+            .ok_or(DomainError::PostNotFound(post_id))?;
+
+        debug!(post_id = post.id, author_id = %post.author_id, "post loaded");
+
+        Ok(post)
     }
 
     /// Обновляет пост, если пользователь является автором.
@@ -66,6 +77,7 @@ where
     /// # Errors
     ///
     /// Возвращает `PostNotFound`, если пост не найден, и `Forbidden`, если пользователь не автор.
+    #[instrument(skip(self, update), fields(user_id = %user_id, post_id = post_id))]
     pub async fn update_post(
         &self,
         user_id: Uuid,
@@ -78,7 +90,10 @@ where
 
         post.update(update);
 
-        self.repo.update(post).await
+        let post = self.repo.update(post).await?;
+        info!(post_id = post.id, user_id = %user_id, "post updated");
+
+        Ok(post)
     }
 
     /// Удаляет пост, если пользователь является автором.
@@ -86,12 +101,16 @@ where
     /// # Errors
     ///
     /// Возвращает `PostNotFound`, если пост не найден, и `Forbidden`, если пользователь не автор.
+    #[instrument(skip(self), fields(user_id = %user_id, post_id = post_id))]
     pub async fn delete_post(&self, user_id: Uuid, post_id: i64) -> Result<(), DomainError> {
         let post = self.get_post(post_id).await?;
 
         ensure_author(&post, user_id)?;
 
-        self.repo.delete(post_id).await
+        self.repo.delete(post_id).await?;
+        info!(post_id = post_id, user_id = %user_id, "post deleted");
+
+        Ok(())
     }
 
     /// Возвращает страницу постов.
@@ -99,9 +118,18 @@ where
     /// # Errors
     ///
     /// Возвращает доменную ошибку, если хранилище недоступно.
+    #[instrument(skip(self), fields(limit = limit, offset = offset))]
     pub async fn list_posts(&self, limit: u64, offset: u64) -> Result<PostPage, DomainError> {
         let posts = self.repo.list(limit, offset).await?;
         let total = self.repo.count().await?;
+
+        debug!(
+            returned = posts.len(),
+            total = total,
+            limit = limit,
+            offset = offset,
+            "posts listed"
+        );
 
         Ok(PostPage { posts, total })
     }
@@ -111,6 +139,8 @@ fn ensure_author(post: &Post, user_id: Uuid) -> Result<(), DomainError> {
     if post.is_author(user_id) {
         return Ok(());
     }
+
+    warn!(post_id = post.id, author_id = %post.author_id, user_id = %user_id, "post access denied");
 
     Err(DomainError::Forbidden)
 }

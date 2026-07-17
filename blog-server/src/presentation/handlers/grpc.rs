@@ -9,6 +9,7 @@ use blog_proto::generated::{
     User,
 };
 use tonic::{Request, Response, Status};
+use tracing::{debug, warn};
 
 use crate::application::auth_service::{AuthService, AuthSession};
 use crate::application::blog_service::{BlogService, PostPage};
@@ -164,21 +165,30 @@ fn authenticated_user_id<T>(
     request: &Request<T>,
     token_service: &JwtTokenService,
 ) -> Result<Uuid, Status> {
-    let header = request
-        .metadata()
-        .get("authorization")
-        .ok_or_else(|| Status::unauthenticated("missing authorization metadata"))?;
-    let header = header
-        .to_str()
-        .map_err(|_| Status::unauthenticated("invalid authorization metadata"))?;
+    let header = request.metadata().get("authorization").ok_or_else(|| {
+        warn!("gRPC authorization metadata is missing");
+        Status::unauthenticated("missing authorization metadata")
+    })?;
+    let header = header.to_str().map_err(|_| {
+        warn!("gRPC authorization metadata is not valid ASCII");
+        Status::unauthenticated("invalid authorization metadata")
+    })?;
     let token = header
         .strip_prefix("Bearer ")
         .filter(|token| !token.is_empty())
-        .ok_or_else(|| Status::unauthenticated("invalid authorization metadata"))?;
+        .ok_or_else(|| {
+            warn!("gRPC authorization metadata has invalid bearer format");
+            Status::unauthenticated("invalid authorization metadata")
+        })?;
 
-    token_service
-        .verify(token)
-        .map_err(|_| Status::unauthenticated("invalid authorization token"))
+    let user_id = token_service.verify(token).map_err(|_| {
+        warn!("gRPC authorization token rejected");
+        Status::unauthenticated("invalid authorization token")
+    })?;
+
+    debug!(user_id = %user_id, "gRPC authorization token accepted");
+
+    Ok(user_id)
 }
 
 fn normalized_limit(limit: u64) -> u64 {
