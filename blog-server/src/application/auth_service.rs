@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use tracing::{instrument, warn};
+use tracing::{info, instrument, warn};
 
 use crate::application::ports::password_hasher::PasswordHasher;
 use crate::application::ports::token_service::TokenService;
@@ -83,6 +83,8 @@ where
         let user = self.repo.create(user).await?;
         let token = self.token_service.issue_new(user.id)?;
 
+        info!(user_id = %user.id, username = %user.username, "user registered");
+
         Ok(AuthSession::new(token, user))
     }
 
@@ -113,6 +115,8 @@ where
         }
 
         let token = self.token_service.issue_new(user.id)?;
+
+        info!(user_id = %user.id, username = %user.username, "user logged in");
 
         Ok(AuthSession::new(token, user))
     }
