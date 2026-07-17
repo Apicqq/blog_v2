@@ -25,6 +25,14 @@ pub enum BlogClientError {
     #[error("unauthorized")]
     Unauthorized,
 
+    /// Доступ к ресурсу запрещен.
+    #[error("forbidden")]
+    Forbidden,
+
+    /// Конфликт состояния ресурса.
+    #[error("conflict: {0}")]
+    Conflict(String),
+
     /// Некорректный запрос.
     #[error("invalid request: {0}")]
     InvalidRequest(String),

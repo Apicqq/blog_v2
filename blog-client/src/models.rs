@@ -1,5 +1,6 @@
 //! Клиентские модели API блога.
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// Пользователь блога.
@@ -31,10 +32,10 @@ pub struct Post {
     pub content: String,
     /// Идентификатор автора.
     pub author_id: String,
-    /// Время создания в Unix timestamp.
-    pub created_at: i64,
-    /// Время последнего обновления в Unix timestamp.
-    pub updated_at: Option<i64>,
+    /// Время создания.
+    pub created_at: DateTime<Utc>,
+    /// Время последнего обновления.
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 /// Страница постов.
@@ -83,8 +84,8 @@ impl From<blog_proto::generated::Post> for Post {
             title: post.title,
             content: post.content,
             author_id: post.author_id,
-            created_at: post.created_at,
-            updated_at: post.updated_at,
+            created_at: timestamp_to_datetime(post.created_at),
+            updated_at: post.updated_at.map(timestamp_to_datetime),
         }
     }
 }
@@ -98,4 +99,8 @@ impl From<blog_proto::generated::ListPostsResponse> for PostPage {
             offset: response.offset,
         }
     }
+}
+
+fn timestamp_to_datetime(timestamp: i64) -> DateTime<Utc> {
+    DateTime::from_timestamp(timestamp, 0).unwrap_or(DateTime::<Utc>::UNIX_EPOCH)
 }

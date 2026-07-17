@@ -560,9 +560,11 @@ name = "blog-client"
 version = "0.1.0"
 dependencies = [
  "blog-proto",
+ "chrono",
  "reqwest",
  "serde",
  "thiserror",
+ "tokio",
  "tonic",
 ]
 
