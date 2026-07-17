@@ -20,6 +20,8 @@ use blog_proto::generated::FILE_DESCRIPTOR_SET;
 use blog_proto::generated::blog_service_server::BlogServiceServer;
 use infrastructure::config::AppConfig;
 use infrastructure::database::db_connection;
+use infrastructure::http::cors::build_cors;
+use infrastructure::http::headers::default_security_headers;
 use infrastructure::persistence::repositories::sea_orm_post_repository::SeaOrmPostRepository;
 use infrastructure::persistence::repositories::sea_orm_user_repository::SeaOrmUserRepository;
 use infrastructure::security::argon2_password_hasher::Argon2PasswordHasher;
@@ -76,6 +78,8 @@ async fn main() -> anyhow::Result<()> {
             .app_data(auth_service.clone())
             .app_data(blog_service.clone())
             .app_data(token_service_data.clone())
+            .wrap(build_cors(&config))
+            .wrap(default_security_headers())
             .service(
                 web::scope("/api")
                     .configure(configure_auth_routes)

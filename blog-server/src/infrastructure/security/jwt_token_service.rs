@@ -26,19 +26,23 @@ impl JwtTokenService {
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
     sub: String,
+    iat: usize,
     exp: usize,
-    // FIXME add iat
 }
 
 impl TokenService for JwtTokenService {
     fn issue_new(&self, user_id: Uuid) -> Result<String, DomainError> {
-        let expires_at = Utc::now()
+        let issued_at = Utc::now();
+        let expires_at = issued_at
             .checked_add_signed(self.ttl)
             .ok_or_else(|| DomainError::Internal("token expiration overflow".to_string()))?;
+        let iat = usize::try_from(issued_at.timestamp())
+            .map_err(|err| DomainError::Internal(err.to_string()))?;
         let exp = usize::try_from(expires_at.timestamp())
             .map_err(|err| DomainError::Internal(err.to_string()))?;
         let claims = Claims {
             sub: user_id.to_string(),
+            iat,
             exp,
         };
 
@@ -75,6 +79,28 @@ mod tests {
         let verified_user_id = service.verify(&token).expect("token should be valid");
 
         assert_eq!(verified_user_id, user_id);
+    }
+
+    #[test]
+    fn issue_new_adds_issued_at_claim() {
+        let ttl = Duration::minutes(15);
+        let service = JwtTokenService::new("secret".to_string(), ttl);
+
+        let token = service
+            .issue_new(Uuid::new_v4())
+            .expect("token should be issued");
+        let token_data = decode::<Claims>(
+            &token,
+            &DecodingKey::from_secret(service.secret.as_bytes()),
+            &Validation::default(),
+        )
+        .expect("token should be decodable");
+
+        assert!(token_data.claims.iat <= token_data.claims.exp);
+        assert_eq!(
+            token_data.claims.exp - token_data.claims.iat,
+            usize::try_from(ttl.num_seconds()).expect("ttl should fit into usize")
+        );
     }
 
     #[test]
