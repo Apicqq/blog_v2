@@ -30,11 +30,13 @@ impl Post {
     /// Создает пост из существенных данных и присвоенного ID.
     #[must_use]
     pub fn from_attributes(id: i64, attributes: PostAttributes) -> Self {
+        let (title, content, author_id) = attributes.into_parts();
+
         Self {
             id,
-            title: attributes.title,
-            content: attributes.content,
-            author_id: attributes.author_id,
+            title,
+            content,
+            author_id,
             created_at: Utc::now(),
             updated_at: None,
         }
@@ -42,8 +44,10 @@ impl Post {
 
     /// Обновляет заголовок и содержимое поста.
     pub fn update(&mut self, update: UpdatePost) {
-        self.title = update.title;
-        self.content = update.content;
+        let (title, content) = update.into_parts();
+
+        self.title = title;
+        self.content = content;
         self.updated_at = Some(Utc::now());
     }
 
@@ -54,13 +58,84 @@ impl Post {
     }
 }
 
+/// Валидный заголовок поста.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PostTitle(String);
+
+impl PostTitle {
+    /// Создает валидный заголовок поста.
+    ///
+    /// # Errors
+    ///
+    /// Возвращает ошибку валидации, если заголовок короче 3 или длиннее 255 символов.
+    pub fn parse(value: &str) -> Result<Self, DomainError> {
+        let value = value.trim().to_string();
+        let length = value.chars().count();
+
+        if length < MIN_POST_TITLE_LENGTH {
+            return Err(DomainError::Validation(
+                "post title must contain at least 3 characters".to_string(),
+            ));
+        }
+
+        if length > MAX_POST_TITLE_LENGTH {
+            return Err(DomainError::Validation(
+                "post title must contain at most 255 characters".to_string(),
+            ));
+        }
+
+        Ok(Self(value))
+    }
+
+    /// Преобразует заголовок поста в строку.
+    #[must_use]
+    pub fn into_inner(self) -> String {
+        self.0
+    }
+}
+
+/// Валидное содержимое поста.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PostContent(String);
+
+impl PostContent {
+    /// Создает валидное содержимое поста.
+    ///
+    /// # Errors
+    ///
+    /// Возвращает ошибку валидации, если содержимое пустое или длиннее 10000 символов.
+    pub fn parse(value: String) -> Result<Self, DomainError> {
+        let length = value.chars().count();
+
+        if length < MIN_POST_CONTENT_LENGTH {
+            return Err(DomainError::Validation(
+                "post content must not be empty".to_string(),
+            ));
+        }
+
+        if length > MAX_POST_CONTENT_LENGTH {
+            return Err(DomainError::Validation(
+                "post content must contain at most 10000 characters".to_string(),
+            ));
+        }
+
+        Ok(Self(value))
+    }
+
+    /// Преобразует содержимое поста в строку.
+    #[must_use]
+    pub fn into_inner(self) -> String {
+        self.0
+    }
+}
+
 /// Существенные данные поста без инфра-обвязки.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PostAttributes {
     /// Заголовок поста.
-    title: String,
+    title: PostTitle,
     /// Содержимое поста.
-    content: String,
+    content: PostContent,
     /// Идентификатор автора поста.
     author_id: Uuid,
 }
@@ -73,12 +148,9 @@ impl PostAttributes {
     /// Возвращает ошибку валидации, если заголовок или содержимое не соответствуют доменным
     /// ограничениям.
     pub fn new(title: &str, content: String, author_id: Uuid) -> Result<Self, DomainError> {
-        let title = title.trim().to_string();
-        validate_post_data(&title, &content)?;
-
         Ok(Self {
-            title,
-            content,
+            title: PostTitle::parse(title)?,
+            content: PostContent::parse(content)?,
             author_id,
         })
     }
@@ -86,7 +158,11 @@ impl PostAttributes {
     /// Разбирает данные поста на поля для слоя хранения.
     #[must_use]
     pub fn into_parts(self) -> (String, String, Uuid) {
-        (self.title, self.content, self.author_id)
+        (
+            self.title.into_inner(),
+            self.content.into_inner(),
+            self.author_id,
+        )
     }
 }
 
@@ -94,9 +170,9 @@ impl PostAttributes {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdatePost {
     /// Новый заголовок поста.
-    title: String,
+    title: PostTitle,
     /// Новое содержимое поста.
-    content: String,
+    content: PostContent,
 }
 
 impl UpdatePost {
@@ -107,47 +183,44 @@ impl UpdatePost {
     /// Возвращает ошибку валидации, если заголовок или содержимое не соответствуют доменным
     /// ограничениям.
     pub fn new(title: &str, content: String) -> Result<Self, DomainError> {
-        let title = title.trim().to_string();
-        validate_post_data(&title, &content)?;
-
-        Ok(Self { title, content })
-    }
-}
-
-fn validate_post_data(title: &str, content: &str) -> Result<(), DomainError> {
-    let title_length = title.chars().count();
-    let content_length = content.chars().count();
-
-    if title_length < MIN_POST_TITLE_LENGTH {
-        return Err(DomainError::Validation(
-            "post title must contain at least 3 characters".to_string(),
-        ));
+        Ok(Self {
+            title: PostTitle::parse(title)?,
+            content: PostContent::parse(content)?,
+        })
     }
 
-    if title_length > MAX_POST_TITLE_LENGTH {
-        return Err(DomainError::Validation(
-            "post title must contain at most 255 characters".to_string(),
-        ));
+    /// Разбирает данные обновления на поля для изменения поста.
+    #[must_use]
+    pub fn into_parts(self) -> (String, String) {
+        (self.title.into_inner(), self.content.into_inner())
     }
-
-    if content_length < MIN_POST_CONTENT_LENGTH {
-        return Err(DomainError::Validation(
-            "post content must not be empty".to_string(),
-        ));
-    }
-
-    if content_length > MAX_POST_CONTENT_LENGTH {
-        return Err(DomainError::Validation(
-            "post content must contain at most 10000 characters".to_string(),
-        ));
-    }
-
-    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn post_title_rejects_short_title_after_trim() {
+        let error = PostTitle::parse("  a  ").expect_err("short title should be rejected");
+
+        assert!(matches!(error, DomainError::Validation(_)));
+    }
+
+    #[test]
+    fn post_title_trims_valid_title() {
+        let title = PostTitle::parse("  Заголовок  ").expect("title should be valid");
+
+        assert_eq!(title.into_inner(), "Заголовок");
+    }
+
+    #[test]
+    fn post_content_rejects_empty_content() {
+        let error =
+            PostContent::parse(String::new()).expect_err("empty content should be rejected");
+
+        assert!(matches!(error, DomainError::Validation(_)));
+    }
 
     #[test]
     fn from_attributes_creates_post_with_expected_fields() {
@@ -165,7 +238,7 @@ mod tests {
     }
 
     #[test]
-    fn post_attributes_rejects_short_title_after_trim() {
+    fn post_attributes_rejects_invalid_title() {
         let error = PostAttributes::new("  a  ", "Содержимое".to_string(), Uuid::new_v4())
             .expect_err("short title should be rejected");
 

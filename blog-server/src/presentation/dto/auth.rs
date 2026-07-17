@@ -1,48 +1,43 @@
 //! DTO аутентификации.
 
 use crate::application::auth_service::AuthSession;
+use crate::domain::errors::DomainError;
 use crate::domain::user::{LoginCredentials, RegistrationData, User};
 use serde::{Deserialize, Serialize};
-use validator::Validate;
 
 /// Запрос регистрации пользователя.
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 pub struct RegisterRequest {
     /// Имя пользователя.
-    #[validate(length(min = 3, max = 32))]
     pub username: String,
     /// Электронная почта пользователя.
-    #[validate(email, length(max = 128))]
     pub email: String,
     /// Пароль пользователя.
-    #[validate(length(min = 8, max = 128))]
     pub password: String,
 }
 
 /// Запрос входа пользователя.
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 pub struct LoginRequest {
     /// Имя пользователя.
-    #[validate(length(min = 3, max = 32))]
     pub username: String,
     /// Пароль пользователя.
-    #[validate(length(min = 8, max = 128))]
     pub password: String,
 }
 
-impl From<RegisterRequest> for RegistrationData {
-    fn from(request: RegisterRequest) -> Self {
-        Self::new(
-            request.username.trim().to_string(),
-            request.email.trim().to_lowercase(),
-            request.password,
-        )
+impl TryFrom<RegisterRequest> for RegistrationData {
+    type Error = DomainError;
+
+    fn try_from(request: RegisterRequest) -> Result<Self, Self::Error> {
+        Self::new(&request.username, &request.email, request.password)
     }
 }
 
-impl From<LoginRequest> for LoginCredentials {
-    fn from(request: LoginRequest) -> Self {
-        Self::new(request.username.trim().to_string(), request.password)
+impl TryFrom<LoginRequest> for LoginCredentials {
+    type Error = DomainError;
+
+    fn try_from(request: LoginRequest) -> Result<Self, Self::Error> {
+        Self::new(&request.username, request.password)
     }
 }
 

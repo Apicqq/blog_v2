@@ -7,7 +7,6 @@ use crate::infrastructure::security::argon2_password_hasher::Argon2PasswordHashe
 use crate::infrastructure::security::jwt_token_service::JwtTokenService;
 use crate::presentation::dto::auth::{AuthResponse, LoginRequest, RegisterRequest};
 use actix_web::{HttpResponse, post, web};
-use validator::Validate;
 
 type BlogAuthService = AuthService<SeaOrmUserRepository, Argon2PasswordHasher, JwtTokenService>;
 
@@ -27,10 +26,7 @@ async fn register_handler(
     payload: web::Json<RegisterRequest>,
 ) -> Result<HttpResponse, DomainError> {
     let payload = payload.into_inner();
-    payload
-        .validate()
-        .map_err(|err| DomainError::Validation(err.to_string()))?;
-    let registration = payload.into();
+    let registration = payload.try_into()?;
     let session = service.register(registration).await?;
 
     Ok(HttpResponse::Created().json(AuthResponse::from(session)))
@@ -43,10 +39,7 @@ async fn login_handler(
     payload: web::Json<LoginRequest>,
 ) -> Result<HttpResponse, DomainError> {
     let payload = payload.into_inner();
-    payload
-        .validate()
-        .map_err(|err| DomainError::Validation(err.to_string()))?;
-    let credentials = payload.into();
+    let credentials = payload.try_into()?;
     let session = service.login(credentials).await?;
 
     Ok(HttpResponse::Ok().json(AuthResponse::from(session)))
