@@ -11,7 +11,7 @@ pub enum BlogClientError {
 
     /// Ошибка gRPC-статуса.
     #[error("gRPC request failed: {0}")]
-    GrpcStatus(#[from] tonic::Status),
+    GrpcStatus(tonic::Status),
 
     /// Ошибка подключения gRPC-транспорта.
     #[error("gRPC transport failed: {0}")]
@@ -42,8 +42,19 @@ pub enum BlogClientError {
     MissingToken,
 }
 
-impl BlogClientError {
-    pub(crate) fn not_implemented(operation: &str) -> Self {
-        Self::InvalidRequest(format!("{operation} is not implemented yet"))
+impl From<tonic::Status> for BlogClientError {
+    fn from(status: tonic::Status) -> Self {
+        match status.code() {
+            tonic::Code::Unauthenticated => Self::Unauthorized,
+            tonic::Code::PermissionDenied => Self::Forbidden,
+            tonic::Code::NotFound => Self::NotFound,
+            tonic::Code::AlreadyExists | tonic::Code::Aborted => {
+                Self::Conflict(status.message().to_string())
+            }
+            tonic::Code::InvalidArgument
+            | tonic::Code::FailedPrecondition
+            | tonic::Code::OutOfRange => Self::InvalidRequest(status.message().to_string()),
+            _ => Self::GrpcStatus(status),
+        }
     }
 }

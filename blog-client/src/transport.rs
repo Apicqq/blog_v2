@@ -85,18 +85,19 @@ impl BlogClient {
         self.token.as_deref()
     }
 
-    /// Регистрирует пользователя.
+    /// Регистрирует пользователя через выбранный транспорт и сохраняет полученный токен.
     ///
     /// # Errors
     ///
-    /// Сейчас возвращает `InvalidRequest`, пока транспортные методы не реализованы.
+    /// Возвращает ошибку, если запрос не выполнен, сервер отклонил данные регистрации
+    /// или ответ не удалось преобразовать в клиентскую модель.
     pub async fn register(
         &mut self,
         username: &str,
         email: &str,
         password: &str,
     ) -> Result<AuthResponse, BlogClientError> {
-        let session = match &self.transport {
+        let session = match &mut self.transport {
             ClientTransport::Http(client) => client.register(username, email, password).await?,
             ClientTransport::Grpc(client) => client.register(username, email, password).await?,
         };
@@ -105,17 +106,18 @@ impl BlogClient {
         Ok(session)
     }
 
-    /// Выполняет вход пользователя.
+    /// Выполняет вход пользователя через выбранный транспорт и сохраняет полученный токен.
     ///
     /// # Errors
     ///
-    /// Сейчас возвращает `InvalidRequest`, пока транспортные методы не реализованы.
+    /// Возвращает ошибку, если запрос не выполнен, учетные данные отклонены
+    /// или ответ не удалось преобразовать в клиентскую модель.
     pub async fn login(
         &mut self,
         username: &str,
         password: &str,
     ) -> Result<AuthResponse, BlogClientError> {
-        let session = match &self.transport {
+        let session = match &mut self.transport {
             ClientTransport::Http(client) => client.login(username, password).await?,
             ClientTransport::Grpc(client) => client.login(username, password).await?,
         };
@@ -124,72 +126,85 @@ impl BlogClient {
         Ok(session)
     }
 
-    /// Создает пост.
+    /// Создает пост через выбранный транспорт.
     ///
     /// # Errors
     ///
-    /// Возвращает `MissingToken`, если токен не задан. Сейчас транспортные методы еще не реализованы.
-    pub async fn create_post(&self, title: &str, content: &str) -> Result<Post, BlogClientError> {
-        let token = self.require_token()?;
+    /// Возвращает ошибку, если токен не задан, запрос не выполнен, токен отклонен,
+    /// данные поста не прошли валидацию или ответ не удалось преобразовать в клиентскую модель.
+    pub async fn create_post(
+        &mut self,
+        title: &str,
+        content: &str,
+    ) -> Result<Post, BlogClientError> {
+        let token = self.require_token()?.to_string();
 
-        match &self.transport {
-            ClientTransport::Http(client) => client.create_post(token, title, content).await,
-            ClientTransport::Grpc(client) => client.create_post(token, title, content).await,
+        match &mut self.transport {
+            ClientTransport::Http(client) => client.create_post(&token, title, content).await,
+            ClientTransport::Grpc(client) => client.create_post(&token, title, content).await,
         }
     }
 
-    /// Возвращает пост по идентификатору.
+    /// Возвращает пост по идентификатору через выбранный транспорт.
     ///
     /// # Errors
     ///
-    /// Сейчас возвращает `InvalidRequest`, пока транспортные методы не реализованы.
-    pub async fn get_post(&self, id: i64) -> Result<Post, BlogClientError> {
-        match &self.transport {
+    /// Возвращает ошибку, если запрос не выполнен, пост не найден, сервер вернул
+    /// ошибочный статус или ответ не удалось преобразовать в клиентскую модель.
+    pub async fn get_post(&mut self, id: i64) -> Result<Post, BlogClientError> {
+        match &mut self.transport {
             ClientTransport::Http(client) => client.get_post(id).await,
             ClientTransport::Grpc(client) => client.get_post(id).await,
         }
     }
 
-    /// Обновляет пост.
+    /// Обновляет пост через выбранный транспорт.
     ///
     /// # Errors
     ///
-    /// Возвращает `MissingToken`, если токен не задан. Сейчас транспортные методы еще не реализованы.
+    /// Возвращает ошибку, если токен не задан, запрос не выполнен, доступ запрещен,
+    /// пост не найден, данные не прошли валидацию или ответ не удалось преобразовать.
     pub async fn update_post(
-        &self,
+        &mut self,
         id: i64,
         title: &str,
         content: &str,
     ) -> Result<Post, BlogClientError> {
-        let token = self.require_token()?;
+        let token = self.require_token()?.to_string();
 
-        match &self.transport {
-            ClientTransport::Http(client) => client.update_post(token, id, title, content).await,
-            ClientTransport::Grpc(client) => client.update_post(token, id, title, content).await,
+        match &mut self.transport {
+            ClientTransport::Http(client) => client.update_post(&token, id, title, content).await,
+            ClientTransport::Grpc(client) => client.update_post(&token, id, title, content).await,
         }
     }
 
-    /// Удаляет пост.
+    /// Удаляет пост через выбранный транспорт.
     ///
     /// # Errors
     ///
-    /// Возвращает `MissingToken`, если токен не задан. Сейчас транспортные методы еще не реализованы.
-    pub async fn delete_post(&self, id: i64) -> Result<(), BlogClientError> {
-        let token = self.require_token()?;
+    /// Возвращает ошибку, если токен не задан, запрос не выполнен, доступ запрещен,
+    /// пост не найден или сервер вернул ошибочный статус.
+    pub async fn delete_post(&mut self, id: i64) -> Result<(), BlogClientError> {
+        let token = self.require_token()?.to_string();
 
-        match &self.transport {
-            ClientTransport::Http(client) => client.delete_post(token, id).await,
-            ClientTransport::Grpc(client) => client.delete_post(token, id).await,
+        match &mut self.transport {
+            ClientTransport::Http(client) => client.delete_post(&token, id).await,
+            ClientTransport::Grpc(client) => client.delete_post(&token, id).await,
         }
     }
 
-    /// Возвращает страницу постов.
+    /// Возвращает страницу постов через выбранный транспорт.
     ///
     /// # Errors
     ///
-    /// Сейчас возвращает `InvalidRequest`, пока транспортные методы не реализованы.
-    pub async fn list_posts(&self, limit: u64, offset: u64) -> Result<PostPage, BlogClientError> {
-        match &self.transport {
+    /// Возвращает ошибку, если запрос не выполнен, сервер вернул ошибочный статус
+    /// или ответ не удалось преобразовать в клиентскую модель.
+    pub async fn list_posts(
+        &mut self,
+        limit: u64,
+        offset: u64,
+    ) -> Result<PostPage, BlogClientError> {
+        match &mut self.transport {
             ClientTransport::Http(client) => client.list_posts(limit, offset).await,
             ClientTransport::Grpc(client) => client.list_posts(limit, offset).await,
         }
@@ -225,7 +240,7 @@ mod tests {
 
     #[tokio::test]
     async fn protected_methods_require_token() {
-        let client = test_client().await;
+        let mut client = test_client().await;
 
         let result = client.create_post("title", "content").await;
 
