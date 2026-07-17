@@ -10,5 +10,7 @@ pub mod http;
 pub mod persistence;
 /// Адаптеры безопасности.
 pub mod security;
+/// Запуск серверов приложения.
+pub mod server;
 /// Настройка логирования и трассировки.
 pub mod telemetry;
