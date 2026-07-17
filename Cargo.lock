@@ -561,6 +561,8 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+ "tokio",
+ "tonic",
  "tracing",
  "tracing-subscriber",
  "uuid",

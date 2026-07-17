@@ -5,6 +5,7 @@ use std::sync::Arc;
 use actix_web::{App, HttpServer, web};
 use anyhow::{Context, ensure};
 use chrono::Duration;
+use tonic::transport::Server;
 use tracing::info;
 
 pub mod application;
@@ -15,7 +16,7 @@ pub mod presentation;
 use actix_web_httpauth::middleware::HttpAuthentication;
 use application::auth_service::AuthService;
 use application::blog_service::BlogService;
-use blog_proto as _;
+use blog_proto::generated::blog_service_server::BlogServiceServer;
 use infrastructure::config::AppConfig;
 use infrastructure::database::db_connection;
 use infrastructure::persistence::repositories::sea_orm_post_repository::SeaOrmPostRepository;
@@ -23,6 +24,7 @@ use infrastructure::persistence::repositories::sea_orm_user_repository::SeaOrmUs
 use infrastructure::security::argon2_password_hasher::Argon2PasswordHasher;
 use infrastructure::security::jwt_token_service::JwtTokenService;
 use presentation::handlers::auth::configure_auth_routes;
+use presentation::handlers::grpc::BlogGrpcApi;
 use presentation::handlers::posts::configure_post_routes;
 use presentation::handlers::protected::configure_protected_routes;
 use presentation::middlewares::jwt_auth::jwt_validator;
@@ -54,11 +56,21 @@ async fn main() -> anyhow::Result<()> {
         Arc::new(token_service),
     ));
     let blog_service = web::Data::new(BlogService::new(Arc::new(post_repository)));
-    let bind_address = format!("{}:{}", config.host, config.port);
+    let http_bind_address = format!("{}:{}", config.host, config.port);
+    let grpc_bind_address = format!("{}:{}", config.host, config.grpc_port);
+    let grpc_socket_address = grpc_bind_address
+        .parse()
+        .with_context(|| format!("invalid gRPC bind address {grpc_bind_address}"))?;
+    let grpc_service = BlogGrpcApi::new(
+        auth_service.get_ref().clone(),
+        blog_service.get_ref().clone(),
+        token_service_data.get_ref().clone(),
+    );
 
-    info!(address = %bind_address, "starting HTTP server");
+    info!(address = %http_bind_address, "starting HTTP server");
+    info!(address = %grpc_bind_address, "starting gRPC server");
 
-    HttpServer::new(move || {
+    let http_server = HttpServer::new(move || {
         App::new()
             .app_data(auth_service.clone())
             .app_data(blog_service.clone())
@@ -74,9 +86,26 @@ async fn main() -> anyhow::Result<()> {
                     ),
             )
     })
-    .bind(&bind_address)
-    .with_context(|| format!("failed to bind HTTP server to {bind_address}"))?
-    .run()
-    .await
-    .context("HTTP server failed")
+    .bind(&http_bind_address)
+    .with_context(|| format!("failed to bind HTTP server to {http_bind_address}"))?
+    .run();
+
+    let grpc_server = Server::builder()
+        .add_service(BlogServiceServer::new(grpc_service))
+        .serve(grpc_socket_address);
+
+    tokio::select! {
+        result = http_server => {
+            result.context("HTTP server failed")?;
+        }
+        result = grpc_server => {
+            result.context("gRPC server failed")?;
+        }
+        result = tokio::signal::ctrl_c() => {
+            result.context("failed to listen for shutdown signal")?;
+            info!("shutdown signal received");
+        }
+    }
+
+    Ok(())
 }
