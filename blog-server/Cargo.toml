@@ -29,3 +29,4 @@ dotenvy.workspace = true
 validator.workspace = true
 futures-util.workspace = true
 actix-web-httpauth.workspace = true
+actix-cors.workspace = true
