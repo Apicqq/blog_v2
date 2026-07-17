@@ -57,22 +57,28 @@ where
     ///
     /// Возвращает доменную ошибку, если пользователь уже существует, пароль не удалось
     /// захешировать, пользователь не может быть сохранен или токен не удалось выпустить.
-    #[instrument(skip(self, registration), fields(username = %registration.username))]
+    #[instrument(skip(self, registration), fields(username = %registration.username()))]
     pub async fn register(
         &self,
         registration: RegistrationData,
     ) -> Result<AuthSession, DomainError> {
-        if self.repo.exists_by_username(&registration.username).await? {
+        if self
+            .repo
+            .exists_by_username(registration.username())
+            .await?
+        {
             warn!("registration rejected: username already exists");
             return Err(DomainError::UsernameAlreadyTaken);
         }
 
-        if self.repo.exists_by_email(&registration.email).await? {
+        if self.repo.exists_by_email(registration.email()).await? {
             warn!("registration rejected: email already exists");
             return Err(DomainError::EmailAlreadyTaken);
         }
 
-        let password_hash = self.password_hasher.hash_password(&registration.password)?;
+        let password_hash = self
+            .password_hasher
+            .hash_password(registration.password())?;
         let user = User::from_registration(registration, password_hash);
         let user = self.repo.create(user).await?;
         let token = self.token_service.issue_new(user.id)?;
@@ -86,11 +92,11 @@ where
     ///
     /// Возвращает доменную ошибку, если пользователь не найден, пароль неверный или токен не
     /// удалось выпустить.
-    #[instrument(skip(self, credentials), fields(username = %credentials.username))]
+    #[instrument(skip(self, credentials), fields(username = %credentials.username()))]
     pub async fn login(&self, credentials: LoginCredentials) -> Result<AuthSession, DomainError> {
         let user = self
             .repo
-            .find_by_username(&credentials.username)
+            .find_by_username(credentials.username())
             .await?
             .ok_or_else(|| {
                 warn!("login rejected: invalid credentials");
@@ -99,7 +105,7 @@ where
 
         let is_valid = self
             .password_hasher
-            .verify_password(&credentials.password, &user.password_hash)?;
+            .verify_password(credentials.password(), &user.password_hash)?;
 
         if !is_valid {
             warn!("login rejected: invalid credentials");
