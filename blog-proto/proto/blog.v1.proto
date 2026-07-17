@@ -42,8 +42,8 @@ message RegisterRequest {
 
 /// Запрос на вход пользователя.
 message LoginRequest {
-  /// Электронная почта пользователя.
-  string email = 1;
+  /// Имя пользователя.
+  string username = 1;
 
   /// Пароль пользователя.
   string password = 2;
@@ -75,7 +75,7 @@ message User {
 /// Пост блога.
 message Post {
   /// Идентификатор поста.
-  string id = 1;
+  int64 id = 1;
 
   /// Заголовок поста.
   string title = 2;
@@ -90,7 +90,7 @@ message Post {
   int64 created_at = 5;
 
   /// Время последнего обновления поста в Unix timestamp.
-  int64 updated_at = 6;
+  optional int64 updated_at = 6;
 }
 
 /// Запрос на создание поста.
@@ -100,21 +100,18 @@ message CreatePostRequest {
 
   /// Содержимое поста.
   string content = 2;
-
-  /// Идентификатор автора поста.
-  string author_id = 3;
 }
 
 /// Запрос на получение поста.
 message GetPostRequest {
   /// Идентификатор поста.
-  string id = 1;
+  int64 id = 1;
 }
 
 /// Запрос на обновление поста.
 message UpdatePostRequest {
   /// Идентификатор поста.
-  string id = 1;
+  int64 id = 1;
 
   /// Новый заголовок поста.
   string title = 2;
@@ -126,7 +123,7 @@ message UpdatePostRequest {
 /// Запрос на удаление поста.
 message DeletePostRequest {
   /// Идентификатор поста.
-  string id = 1;
+  int64 id = 1;
 }
 
 /// Ответ на удаление поста.
@@ -135,10 +132,10 @@ message DeletePostResponse {}
 /// Запрос списка постов.
 message ListPostsRequest {
   /// Максимальное количество постов в ответе.
-  uint32 page_size = 1;
+  uint64 limit = 1;
 
-  /// Токен следующей страницы.
-  string page_token = 2;
+  /// Смещение списка постов.
+  uint64 offset = 2;
 }
 
 /// Ответ со списком постов.
@@ -146,6 +143,12 @@ message ListPostsResponse {
   /// Посты текущей страницы.
   repeated Post posts = 1;
 
-  /// Токен следующей страницы.
-  string next_page_token = 2;
+  /// Общее количество постов.
+  uint64 total = 2;
+
+  /// Максимальное количество постов в ответе.
+  uint64 limit = 3;
+
+  /// Смещение списка постов.
+  uint64 offset = 4;
 }

@@ -5,6 +5,7 @@ use serde::Deserialize;
 
 const DEFAULT_HOST: &str = "127.0.0.1";
 const DEFAULT_PORT: &str = "8080";
+const DEFAULT_GRPC_PORT: &str = "50051";
 const DEFAULT_CORS_ORIGINS: &str = "*";
 const DEFAULT_JWT_TTL_SECONDS: &str = "3600";
 
@@ -15,6 +16,8 @@ pub struct AppConfig {
     pub host: String,
     /// Порт HTTP-сервера.
     pub port: u16,
+    /// Порт gRPC-сервера.
+    pub grpc_port: u16,
     /// Строка подключения к базе данных.
     pub database_url: String,
     /// Секрет для подписи JWT-токенов.
@@ -42,6 +45,9 @@ impl AppConfig {
         let port = env_or_default("PORT", DEFAULT_PORT)
             .parse()
             .context("invalid PORT")?;
+        let grpc_port = env_or_default("GRPC_PORT", DEFAULT_GRPC_PORT)
+            .parse()
+            .context("invalid GRPC_PORT")?;
         let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
         let jwt_secret = std::env::var("JWT_SECRET").context("JWT_SECRET must be set")?;
         let jwt_ttl_seconds = env_or_default("JWT_TTL_SECONDS", DEFAULT_JWT_TTL_SECONDS)
@@ -53,6 +59,7 @@ impl AppConfig {
         Ok(Self {
             host,
             port,
+            grpc_port,
             database_url,
             jwt_secret,
             jwt_ttl_seconds,

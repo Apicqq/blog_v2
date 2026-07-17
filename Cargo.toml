@@ -27,6 +27,8 @@ perf = "warn"
 blog-proto = { path = "blog-proto" }
 prost = "0.14"
 tonic = "0.14"
+tonic-reflection = "0.14"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
 tonic-prost = "0.14"
 tonic-prost-build = "0.14"
 uuid = { version = "1", features = ["v4", "serde"] }

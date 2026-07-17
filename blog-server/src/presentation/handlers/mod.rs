@@ -6,3 +6,6 @@ pub mod auth;
 pub mod posts;
 /// Protected/debug handlers.
 pub mod protected;
+
+/// Handlers для gRPC.
+pub mod grpc;

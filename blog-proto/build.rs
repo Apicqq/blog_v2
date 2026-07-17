@@ -1,8 +1,16 @@
 //! Генерация Rust-кода из protobuf-контрактов блога.
 
-fn main() {
-    println!("cargo:rerun-if-changed=proto/blog.v1.proto");
+use std::env;
+use std::path::PathBuf;
 
-    tonic_prost_build::compile_protos("proto/blog.v1.proto")
-        .expect("не удалось сгенерировать Rust-код из protobuf-контрактов");
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("cargo:rerun-if-changed=proto/blog.v1.proto");
+    let out_dir = PathBuf::from(env::var("OUT_DIR")?);
+    tonic_prost_build::configure()
+        .file_descriptor_set_path(out_dir.join("blog_descriptor.bin"))
+        .build_server(true)
+        .build_client(true)
+        .compile_protos(&["proto/blog.v1.proto"], &["proto"])?;
+
+    Ok(())
 }

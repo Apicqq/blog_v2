@@ -13,4 +13,7 @@ pub mod generated {
     #![allow(clippy::too_many_lines)]
 
     tonic::include_proto!("blog.v1");
+
+    /// Закодированный descriptor set protobuf-контрактов блога для gRPC reflection.
+    pub const FILE_DESCRIPTOR_SET: &[u8] = tonic::include_file_descriptor_set!("blog_descriptor");
 }
