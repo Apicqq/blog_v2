@@ -5,6 +5,7 @@ use std::sync::Arc;
 use actix_web::{App, HttpServer, web};
 use anyhow::{Context, ensure};
 use chrono::Duration;
+use tokio::sync::oneshot;
 use tonic::transport::Server;
 use tracing::info;
 
@@ -91,29 +92,54 @@ async fn main() -> anyhow::Result<()> {
                     ),
             )
     })
+    .disable_signals()
+    .shutdown_timeout(10)
     .bind(&http_bind_address)
     .with_context(|| format!("failed to bind HTTP server to {http_bind_address}"))?
     .run();
+    let http_handle = http_server.handle();
 
     let reflection_grpc_service = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
         .build_v1()?;
+    let (grpc_shutdown_tx, grpc_shutdown_rx) = oneshot::channel();
 
     let grpc_server = Server::builder()
         .add_service(BlogServiceServer::new(grpc_service))
         .add_service(reflection_grpc_service)
-        .serve(grpc_socket_address);
+        .serve_with_shutdown(grpc_socket_address, async {
+            let _ = grpc_shutdown_rx.await;
+            info!("stopping gRPC server gracefully");
+        });
+
+    let mut http_task = tokio::spawn(http_server);
+    let mut grpc_task = tokio::spawn(grpc_server);
+    let mut grpc_shutdown_tx = Some(grpc_shutdown_tx);
 
     tokio::select! {
-        result = http_server => {
-            result.context("HTTP server failed")?;
+        result = &mut http_task => {
+            let http_result = result.context("HTTP server task failed")?;
+            if let Some(shutdown) = grpc_shutdown_tx.take() {
+                let _ = shutdown.send(());
+            }
+            grpc_task.await.context("gRPC server task failed")?.context("gRPC server failed")?;
+            http_result.context("HTTP server failed")?;
         }
-        result = grpc_server => {
-            result.context("gRPC server failed")?;
+        result = &mut grpc_task => {
+            let grpc_result = result.context("gRPC server task failed")?;
+            http_handle.stop(true).await;
+            http_task.await.context("HTTP server task failed")?.context("HTTP server failed")?;
+            grpc_result.context("gRPC server failed")?;
         }
         result = tokio::signal::ctrl_c() => {
             result.context("failed to listen for shutdown signal")?;
             info!("shutdown signal received");
+            if let Some(shutdown) = grpc_shutdown_tx.take() {
+                let _ = shutdown.send(());
+            }
+            http_handle.stop(true).await;
+            http_task.await.context("HTTP server task failed")?.context("HTTP server failed")?;
+            grpc_task.await.context("gRPC server task failed")?.context("gRPC server failed")?;
         }
     }
 
