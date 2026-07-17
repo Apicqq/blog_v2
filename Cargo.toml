@@ -62,3 +62,4 @@ dotenvy = "0.15"
 validator = "0.20"
 futures-util = "0.3"
 actix-web-httpauth = "0.8"
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }

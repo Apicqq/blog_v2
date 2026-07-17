@@ -44,6 +44,8 @@ pub struct PostResponse {
     pub title: String,
     /// Содержимое поста.
     pub content: String,
+    /// Идентификатор автора поста.
+    pub author_id: String,
     /// Время создания поста.
     pub created_at: DateTime<Utc>,
     /// Время последнего обновления поста.
@@ -56,6 +58,7 @@ impl From<Post> for PostResponse {
             id: post.id,
             title: post.title,
             content: post.content,
+            author_id: post.author_id.to_string(),
             created_at: post.created_at,
             updated_at: post.updated_at,
         }
