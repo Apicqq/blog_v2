@@ -2,7 +2,7 @@
 
 use crate::errors::BlogClientError;
 use crate::models::{AuthResponse, Post, PostPage};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// HTTP-клиент блога.
 #[derive(Debug, Clone)]
@@ -34,6 +34,27 @@ struct CreatePostRequest<'a> {
 struct UpdatePostRequest<'a> {
     title: &'a str,
     content: &'a str,
+}
+
+#[derive(Debug, Deserialize)]
+struct ErrorResponse {
+    error: String,
+    details: Option<serde_json::Value>,
+}
+
+impl ErrorResponse {
+    fn message(self) -> String {
+        if let Some(message) = self
+            .details
+            .as_ref()
+            .and_then(|details| details.get("message"))
+            .and_then(serde_json::Value::as_str)
+        {
+            message.to_string()
+        } else {
+            self.error
+        }
+    }
 }
 
 impl HttpClient {
@@ -215,13 +236,11 @@ impl HttpClient {
             reqwest::StatusCode::FORBIDDEN => Err(BlogClientError::Forbidden),
             reqwest::StatusCode::NOT_FOUND => Err(BlogClientError::NotFound),
             reqwest::StatusCode::CONFLICT => {
-                let body = response.text().await.unwrap_or_default();
-                Err(BlogClientError::Conflict(body))
+                Err(BlogClientError::Conflict(error_message(response).await))
             }
-            status if status.is_client_error() => {
-                let body = response.text().await.unwrap_or_default();
-                Err(BlogClientError::InvalidRequest(body))
-            }
+            status if status.is_client_error() => Err(BlogClientError::InvalidRequest(
+                error_message(response).await,
+            )),
             _ => Err(response.error_for_status().unwrap_err().into()),
         }
     }
@@ -233,16 +252,21 @@ impl HttpClient {
             reqwest::StatusCode::FORBIDDEN => Err(BlogClientError::Forbidden),
             reqwest::StatusCode::NOT_FOUND => Err(BlogClientError::NotFound),
             reqwest::StatusCode::CONFLICT => {
-                let body = response.text().await.unwrap_or_default();
-                Err(BlogClientError::Conflict(body))
+                Err(BlogClientError::Conflict(error_message(response).await))
             }
-            status if status.is_client_error() => {
-                let body = response.text().await.unwrap_or_default();
-                Err(BlogClientError::InvalidRequest(body))
-            }
+            status if status.is_client_error() => Err(BlogClientError::InvalidRequest(
+                error_message(response).await,
+            )),
             _ => Err(response.error_for_status().unwrap_err().into()),
         }
     }
+}
+
+async fn error_message(response: reqwest::Response) -> String {
+    response
+        .json::<ErrorResponse>()
+        .await
+        .map_or_else(|_| "request failed".to_string(), ErrorResponse::message)
 }
 
 #[cfg(test)]
@@ -268,5 +292,30 @@ mod tests {
             client.api_endpoint("posts?limit=10&offset=0"),
             "http://localhost:8080/api/posts?limit=10&offset=0"
         );
+    }
+
+    #[test]
+    fn error_response_uses_details_message_when_present() {
+        let response = ErrorResponse {
+            error: "validation error".to_string(),
+            details: Some(serde_json::json!({
+                "message": "password must contain at least 8 characters"
+            })),
+        };
+
+        assert_eq!(
+            response.message(),
+            "password must contain at least 8 characters"
+        );
+    }
+
+    #[test]
+    fn error_response_falls_back_to_error() {
+        let response = ErrorResponse {
+            error: "email already taken".to_string(),
+            details: None,
+        };
+
+        assert_eq!(response.message(), "email already taken");
     }
 }
