@@ -2,7 +2,9 @@
 
 use crate::cli::{AuthCommand, Cli, Command, PostsCommand};
 use crate::config::CliConfig;
-use crate::output::{print_auth, print_deleted, print_error, print_post, print_post_page};
+use crate::output::{
+    print_deleted, print_error, print_logged_in, print_post, print_post_page, print_registered,
+};
 use crate::token_store::{read_token, write_token};
 use blog_client::BlogClient;
 use clap::Parser;
@@ -44,12 +46,12 @@ async fn run(cli: Cli) -> anyhow::Result<()> {
             } => {
                 let response = client.register(&username, &email, &password).await?;
                 write_token(&config.token_file, &response.token)?;
-                print_auth(&response, config.json)?;
+                print_registered(&response, config.json)?;
             }
             AuthCommand::Login { username, password } => {
                 let response = client.login(&username, &password).await?;
                 write_token(&config.token_file, &response.token)?;
-                print_auth(&response, config.json)?;
+                print_logged_in(&response, config.json)?;
             }
         },
 

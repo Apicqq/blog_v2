@@ -11,12 +11,26 @@ struct ErrorOutput {
     message: String,
 }
 
-/// Печатает результат аутентификации.
+/// Печатает результат регистрации.
 ///
 /// # Errors
 ///
 /// Возвращает ошибку, если JSON-ответ не удалось сериализовать.
-pub(crate) fn print_auth(response: &AuthResponse, json: bool) -> anyhow::Result<()> {
+pub(crate) fn print_registered(response: &AuthResponse, json: bool) -> anyhow::Result<()> {
+    if json {
+        print_json(response)
+    } else {
+        println!("Registered user {}", response.user.username);
+        Ok(())
+    }
+}
+
+/// Печатает результат входа.
+///
+/// # Errors
+///
+/// Возвращает ошибку, если JSON-ответ не удалось сериализовать.
+pub(crate) fn print_logged_in(response: &AuthResponse, json: bool) -> anyhow::Result<()> {
     if json {
         print_json(response)
     } else {
