@@ -24,6 +24,7 @@ pedantic = "warn"
 perf = "warn"
 
 [workspace.dependencies]
+blog-client = { path = "blog-client" }
 blog-proto = { path = "blog-proto" }
 prost = "0.14"
 tonic = "0.14"
@@ -63,3 +64,4 @@ validator = "0.20"
 futures-util = "0.3"
 actix-web-httpauth = "0.8"
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
+clap = { version = "4", features = ["derive"] }
