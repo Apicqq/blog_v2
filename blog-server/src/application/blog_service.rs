@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tracing::{debug, info, instrument, warn};
 use uuid::Uuid;
 
-use crate::application::ports::post_repository::PostRepository;
+use crate::application::ports::post_repository::{PostRepository, PostWithAuthor};
 use crate::domain::errors::DomainError;
 use crate::domain::post::{Post, PostAttributes, UpdatePost};
 
@@ -14,6 +14,15 @@ use crate::domain::post::{Post, PostAttributes, UpdatePost};
 pub struct PostPage {
     /// Посты текущей страницы.
     pub posts: Vec<Post>,
+    /// Общее количество постов.
+    pub total: u64,
+}
+
+/// Страница постов с отображаемыми данными авторов.
+#[derive(Debug)]
+pub struct PostWithAuthorPage {
+    /// Посты текущей страницы.
+    pub posts: Vec<PostWithAuthor>,
     /// Общее количество постов.
     pub total: u64,
 }
@@ -68,6 +77,28 @@ where
             .ok_or(DomainError::PostNotFound(post_id))?;
 
         debug!(post_id = post.id, author_id = %post.author_id, "post loaded");
+
+        Ok(post)
+    }
+
+    /// Возвращает пост с отображаемыми данными автора по идентификатору.
+    ///
+    /// # Errors
+    ///
+    /// Возвращает `PostNotFound`, если пост не найден.
+    #[instrument(skip(self), fields(post_id = post_id))]
+    pub async fn get_post_with_author(&self, post_id: i64) -> Result<PostWithAuthor, DomainError> {
+        let post = self
+            .repo
+            .find_with_author_by_id(post_id)
+            .await?
+            .ok_or(DomainError::PostNotFound(post_id))?;
+
+        debug!(
+            post_id = post.post.id,
+            author_username = post.author_username,
+            "post with author loaded"
+        );
 
         Ok(post)
     }
@@ -132,6 +163,31 @@ where
         );
 
         Ok(PostPage { posts, total })
+    }
+
+    /// Возвращает страницу постов с отображаемыми данными авторов.
+    ///
+    /// # Errors
+    ///
+    /// Возвращает доменную ошибку, если хранилище недоступно.
+    #[instrument(skip(self), fields(limit = limit, offset = offset))]
+    pub async fn list_posts_with_authors(
+        &self,
+        limit: u64,
+        offset: u64,
+    ) -> Result<PostWithAuthorPage, DomainError> {
+        let posts = self.repo.list_with_authors(limit, offset).await?;
+        let total = self.repo.count().await?;
+
+        debug!(
+            returned = posts.len(),
+            total = total,
+            limit = limit,
+            offset = offset,
+            "posts with authors listed"
+        );
+
+        Ok(PostWithAuthorPage { posts, total })
     }
 }
 
@@ -206,6 +262,18 @@ mod tests {
             Ok(post)
         }
 
+        async fn find_with_author_by_id(
+            &self,
+            id: i64,
+        ) -> Result<Option<PostWithAuthor>, DomainError> {
+            let post = self.find_by_id(id).await?;
+
+            Ok(post.map(|post| PostWithAuthor {
+                post,
+                author_username: "test-author".to_string(),
+            }))
+        }
+
         async fn update(&self, post: Post) -> Result<Post, DomainError> {
             let mut posts = self
                 .posts
@@ -250,6 +318,22 @@ mod tests {
                 .collect();
 
             Ok(posts)
+        }
+
+        async fn list_with_authors(
+            &self,
+            limit: u64,
+            offset: u64,
+        ) -> Result<Vec<PostWithAuthor>, DomainError> {
+            let posts = self.list(limit, offset).await?;
+
+            Ok(posts
+                .into_iter()
+                .map(|post| PostWithAuthor {
+                    post,
+                    author_username: "test-author".to_string(),
+                })
+                .collect())
         }
 
         async fn count(&self) -> Result<u64, DomainError> {

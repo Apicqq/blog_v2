@@ -13,7 +13,6 @@ pub(crate) fn save_token_to_storage(token: &str) {
     let _ = LocalStorage::set(TOKEN_KEY, token).ok();
 }
 
-#[allow(dead_code)]
 pub(crate) fn clear_token() {
     LocalStorage::delete(TOKEN_KEY);
 }

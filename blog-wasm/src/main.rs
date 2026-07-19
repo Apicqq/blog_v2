@@ -2,6 +2,7 @@
 
 mod api;
 mod app;
+mod components;
 mod errors;
 mod models;
 mod storage;

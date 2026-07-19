@@ -18,7 +18,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -82,7 +83,8 @@ p {
   box-shadow: 0 8px 24px rgba(20, 31, 41, 0.06);
 }
 
-.auth-panel {
+.auth-panel,
+.auth-form {
   display: grid;
   gap: 14px;
 }
@@ -94,7 +96,8 @@ label {
   font-size: 14px;
 }
 
-input {
+input,
+textarea {
   width: 100%;
   height: 40px;
   border: 1px solid #cfd7df;
@@ -104,9 +107,16 @@ input {
   background: #ffffff;
 }
 
-input:focus {
+input:focus,
+textarea:focus {
   border-color: var(--accent-color);
   outline: 3px solid rgba(31, 122, 92, 0.14);
+}
+
+textarea {
+  min-height: 96px;
+  resize: vertical;
+  padding: 10px;
 }
 
 .button-row,
@@ -132,9 +142,37 @@ button.secondary {
   background: #ffffff;
 }
 
+button.danger {
+  border-color: #b94035;
+  background: #b94035;
+}
+
+.post-form,
 .post-list {
   display: grid;
   gap: 10px;
+}
+
+.post-form {
+  margin-top: 16px;
+}
+
+.edit-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+  border-top: 1px solid #e1e7ec;
+  padding-top: 10px;
+}
+
+.post-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.post-list {
   list-style: none;
   padding: 16px 0 0;
   margin: 0;
@@ -157,6 +195,7 @@ button.secondary {
   font-size: 14px;
 }
 
+.success-message,
 .empty-state,
 .error-message {
   display: grid;
@@ -171,6 +210,12 @@ button.secondary {
 .empty-state strong,
 .error-message strong {
   color: var(--text-color);
+}
+
+.success-message {
+  color: #1f7a5c;
+  background: #f2fbf7;
+  border-color: #a9d8c5;
 }
 
 .error-message {
