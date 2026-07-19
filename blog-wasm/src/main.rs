@@ -7,6 +7,7 @@ mod errors;
 mod models;
 mod session;
 mod storage;
+mod validation;
 
 use app::App;
 

@@ -4,6 +4,7 @@ use crate::api;
 use crate::components::NotificationState;
 use crate::models::User;
 use crate::storage;
+use crate::validation;
 use dioxus::prelude::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -133,6 +134,11 @@ fn RegisterForm(
                     let email = email.read().clone();
                     let password = password.read().clone();
 
+                    if let Some(message) = validation::validate_registration(&username, &email, &password) {
+                        notification.set(Some(NotificationState::error(message)));
+                        return;
+                    }
+
                     spawn(async move {
                         match api::register(&username, &email, &password).await {
                             Ok(response) => {
@@ -195,6 +201,11 @@ fn LoginForm(
                 onclick: move |_| {
                     let username = username.read().clone();
                     let password = password.read().clone();
+
+                    if let Some(message) = validation::validate_login(&username, &password) {
+                        notification.set(Some(NotificationState::error(message)));
+                        return;
+                    }
 
                     spawn(async move {
                         match api::login(&username, &password).await {

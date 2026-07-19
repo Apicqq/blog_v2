@@ -5,6 +5,7 @@ use crate::components::NotificationState;
 use crate::errors::ApiError;
 use crate::models::{Post, PostPage};
 use crate::session;
+use crate::validation;
 use dioxus::prelude::*;
 
 const POSTS_LIMIT: u64 = 10;
@@ -86,6 +87,11 @@ fn CreatePostForm(
                         };
                         let current_title = title.read().clone();
                         let current_content = content.read().clone();
+
+                        if let Some(message) = validation::validate_post(&current_title, &current_content) {
+                            set_error(notification, &message);
+                            return;
+                        }
 
                         spawn(async move {
                             match api::create_post(&current_token, &current_title, &current_content)
@@ -335,6 +341,11 @@ fn EditPostForm(
                         };
                         let current_title = edit_title.read().clone();
                         let current_content = edit_content.read().clone();
+
+                        if let Some(message) = validation::validate_post(&current_title, &current_content) {
+                            set_error(notification, &message);
+                            return;
+                        }
 
                         spawn(async move {
                             match api::update_post(
