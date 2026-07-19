@@ -224,22 +224,65 @@ textarea {
 
 button {
   height: 40px;
-  border: 1px solid var(--accent-color);
-  border-radius: 6px;
-  padding: 0 14px;
+  border: 1px solid #1f7a5c;
+  border-radius: 999px;
+  padding: 0 16px;
   color: #ffffff;
-  background: var(--accent-color);
+  background: #1f7a5c;
+  box-shadow: 0 8px 18px rgba(31, 122, 92, 0.18);
   cursor: pointer;
+  font-weight: 650;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+button:hover {
+  border-color: #17664c;
+  background: #17664c;
+  box-shadow: 0 10px 22px rgba(31, 122, 92, 0.24);
+  transform: translateY(-1px);
+}
+
+button:active {
+  box-shadow: 0 4px 10px rgba(31, 122, 92, 0.18);
+  transform: translateY(0);
+}
+
+button:focus-visible {
+  outline: 3px solid rgba(31, 122, 92, 0.18);
+  outline-offset: 2px;
 }
 
 button.secondary {
-  color: var(--accent-color);
+  border-color: #cfd7df;
+  color: #2d614f;
   background: #ffffff;
+  box-shadow: none;
+}
+
+button.secondary:hover {
+  border-color: #9db7ad;
+  color: #1f7a5c;
+  background: #f4faf7;
+  box-shadow: 0 8px 18px rgba(20, 31, 41, 0.08);
 }
 
 button.danger {
-  border-color: #b94035;
+  border-color: #f0c9c4;
+  color: #9f3028;
+  background: #fff7f5;
+  box-shadow: none;
+}
+
+button.danger:hover {
+  border-color: #d86c61;
+  color: #ffffff;
   background: #b94035;
+  box-shadow: 0 8px 18px rgba(185, 64, 53, 0.18);
 }
 
 button.icon-button {
@@ -249,17 +292,36 @@ button.icon-button {
   padding: 0;
   color: #4c5965;
   background: transparent;
+  box-shadow: none;
   font-size: 22px;
   line-height: 1;
+}
+
+button.icon-button:hover {
+  color: #172026;
+  background: #f1f4f6;
+  box-shadow: none;
 }
 
 button.text-button {
   height: auto;
   border: 0;
+  border-radius: 0;
   padding: 0;
   color: var(--accent-color);
   background: transparent;
-  font-weight: 600;
+  box-shadow: none;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+button.text-button:hover {
+  color: #17664c;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
 }
 
 .post-form,
