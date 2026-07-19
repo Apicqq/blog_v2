@@ -33,14 +33,16 @@ pub(crate) fn App() -> Element {
                     h1 { "Blog" }
                     p { "WASM-клиент для HTTP API" }
                 }
-                StatusBadge {
-                    has_token: token.read().is_some(),
-                    username: current_user.read().as_ref().map(|user| user.username.clone()),
+                div { class: "topbar-actions",
+                    StatusBadge {
+                        has_token: token.read().is_some(),
+                        username: current_user.read().as_ref().map(|user| user.username.clone()),
+                    }
+                    AuthPanel { token, current_user, notification }
                 }
             }
 
             section { class: "workspace",
-                AuthPanel { token, current_user, notification }
                 PostsPanel { token, notification }
             }
         }

@@ -37,8 +37,16 @@ textarea {
   padding: 18px 0 24px;
 }
 
+.topbar-actions,
+.auth-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 h1,
 h2,
+h3,
 p {
   margin: 0;
 }
@@ -50,6 +58,11 @@ h1 {
 
 h2 {
   font-size: 18px;
+  line-height: 1.2;
+}
+
+h3 {
+  font-size: 15px;
   line-height: 1.2;
 }
 
@@ -67,12 +80,11 @@ p {
   white-space: nowrap;
 }
 
-
 .notification-host {
   position: fixed;
   top: 18px;
   right: 18px;
-  z-index: 20;
+  z-index: 30;
   width: min(380px, calc(100vw - 32px));
 }
 
@@ -115,12 +127,11 @@ p {
 
 .workspace {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: 1fr;
   gap: 18px;
   align-items: start;
 }
 
-.auth-panel,
 .posts-panel {
   background: #ffffff;
   border: 1px solid #dde3e8;
@@ -129,7 +140,45 @@ p {
   box-shadow: 0 8px 24px rgba(20, 31, 41, 0.06);
 }
 
-.auth-panel,
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(23, 32, 38, 0.34);
+}
+
+.auth-dialog {
+  width: min(420px, 100%);
+  max-height: calc(100vh - 36px);
+  overflow: auto;
+  border: 1px solid #dde3e8;
+  border-radius: 8px;
+  padding: 18px;
+  background: #ffffff;
+  box-shadow: 0 24px 72px rgba(20, 31, 41, 0.22);
+}
+
+.dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.auth-switch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  color: #5d6974;
+  font-size: 14px;
+}
+
 .auth-form {
   display: grid;
   gap: 14px;
@@ -191,6 +240,26 @@ button.secondary {
 button.danger {
   border-color: #b94035;
   background: #b94035;
+}
+
+button.icon-button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  padding: 0;
+  color: #4c5965;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+}
+
+button.text-button {
+  height: auto;
+  border: 0;
+  padding: 0;
+  color: var(--accent-color);
+  background: transparent;
+  font-weight: 600;
 }
 
 .post-form,
@@ -275,41 +344,9 @@ button.danger {
     flex-direction: column;
   }
 
-  
-.notification-host {
-  position: fixed;
-  top: 18px;
-  right: 18px;
-  z-index: 20;
-  width: min(380px, calc(100vw - 32px));
-}
-
-.notification-success {
-  color: #1f7a5c;
-  border-color: #a9d8c5;
-  background: #f2fbf7;
-}
-
-.notification-error {
-  color: #8f2f26;
-  border-color: #efb5ad;
-  background: #fff7f5;
-}
-
-.notification-close {
-  width: 28px;
-  height: 28px;
-  flex: 0 0 28px;
-  border: 0;
-  padding: 0;
-  color: inherit;
-  background: transparent;
-  font-size: 20px;
-  line-height: 1;
-}
-
-.workspace {
-    grid-template-columns: 1fr;
+  .topbar-actions {
+    justify-content: space-between;
+    width: 100%;
   }
 
   .button-row {
