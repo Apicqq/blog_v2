@@ -2,9 +2,9 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use validator::ValidateEmail;
+// трейдофф чтобы самому не писать логику валидации по стандарту RFC 5322
 
 use crate::domain::errors::DomainError;
-// трейдофф чтобы самому не писать логику валидации по стандарту RFC 5322
 
 const MIN_USERNAME_LENGTH: usize = 3;
 const MAX_USERNAME_LENGTH: usize = 32;
