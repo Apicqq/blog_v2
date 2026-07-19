@@ -138,7 +138,8 @@ fn user_message_from_server(message: &str) -> String {
         "username must contain at least 3 characters" => {
             "Имя пользователя должно содержать минимум 3 символа.".to_string()
         }
-        "email must be valid" => "Введите корректную почту.".to_string(),
+        "email is invalid" | "email must be valid" => "Введите корректную почту.".to_string(),
+        "email must not be empty" => "Почта не должна быть пустой.".to_string(),
         _ => message.to_string(),
     }
 }
@@ -193,6 +194,18 @@ mod tests {
         assert_eq!(
             ApiError::InvalidRequest("post content must not be empty".to_string()).user_message(),
             "Текст поста не должен быть пустым."
+        );
+    }
+
+    #[test]
+    fn api_error_user_message_maps_email_validation_messages() {
+        assert_eq!(
+            ApiError::InvalidRequest("email is invalid".to_string()).user_message(),
+            "Введите корректную почту."
+        );
+        assert_eq!(
+            ApiError::InvalidRequest("email must not be empty".to_string()).user_message(),
+            "Почта не должна быть пустой."
         );
     }
 
