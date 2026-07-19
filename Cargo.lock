@@ -649,6 +649,7 @@ dependencies = [
 name = "blog-wasm"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "dioxus",
  "gloo-net 0.7.0",
  "gloo-storage",

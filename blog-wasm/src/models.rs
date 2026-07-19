@@ -7,6 +7,7 @@ pub(crate) struct Post {
     pub id: i64,
     pub title: String,
     pub content: String,
+    pub author_id: String,
     pub author_username: String,
     pub created_at: String,
     pub updated_at: Option<String>,

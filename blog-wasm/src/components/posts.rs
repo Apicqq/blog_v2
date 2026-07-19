@@ -4,6 +4,7 @@ use crate::api;
 use crate::components::NotificationState;
 use crate::errors::ApiError;
 use crate::models::{Post, PostPage};
+use crate::session;
 use dioxus::prelude::*;
 
 /// Панель списка постов.
@@ -181,7 +182,7 @@ fn PostCard(
             }
             p { "{post.content}" }
 
-            if token.read().is_some() {
+            if is_current_user_author(token, &post.author_id) {
                 div { class: "post-actions",
                     button {
                         class: "secondary",
@@ -325,6 +326,14 @@ fn EditPostForm(
             }
         }
     }
+}
+
+fn is_current_user_author(token: Signal<Option<String>>, author_id: &str) -> bool {
+    token
+        .read()
+        .as_deref()
+        .and_then(session::user_id_from_token)
+        .is_some_and(|user_id| user_id == author_id)
 }
 
 fn set_error(mut notification: Signal<Option<NotificationState>>, value: &str) {

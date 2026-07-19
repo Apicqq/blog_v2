@@ -5,6 +5,7 @@ mod app;
 mod components;
 mod errors;
 mod models;
+mod session;
 mod storage;
 
 use app::App;
