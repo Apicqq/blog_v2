@@ -1,6 +1,6 @@
 //! Работа с клиентским состоянием авторизации.
 
-use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]

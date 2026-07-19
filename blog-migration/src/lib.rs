@@ -1,7 +1,11 @@
 //! Миграции базы данных блога.
 
 pub use sea_orm_migration::prelude::*;
-use tokio as _;
+
+// `tokio` используется бинарем через `#[tokio::main]`; явную ссылку беру,
+//  чтобы clippy не считал зависимость неиспользуемой.
+//  Через as _ не очень красиво :)
+extern crate tokio;
 
 mod m20260715_000001_create_table;
 
