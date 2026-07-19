@@ -3,7 +3,7 @@
 use crate::errors::{ApiError, ensure_success};
 use crate::models::{
     AuthResponse, CreatePostRequest, LoginRequest, Post, PostPage, RegisterRequest,
-    UpdatePostRequest,
+    UpdatePostRequest, User,
 };
 use crate::storage::save_token_to_storage;
 use gloo_net::http::Request;
@@ -74,6 +74,23 @@ pub(crate) async fn login(username: &str, password: &str) -> Result<AuthResponse
     save_token_to_storage(&auth.token);
 
     Ok(auth)
+}
+
+/// Возвращает текущего пользователя по сохраненному токену.
+///
+/// # Errors
+///
+/// Возвращает ошибку, если токен отклонен, HTTP-запрос завершился неуспешно
+/// или ответ не удалось десериализовать.
+pub(crate) async fn current_user(token: &str) -> Result<User, ApiError> {
+    let response = Request::get(&format!("{API_BASE_URL}/me"))
+        .header("Authorization", &bearer_token(token))
+        .send()
+        .await?;
+
+    ensure_success(&response).await?;
+
+    Ok(response.json::<User>().await?)
 }
 
 /// Создает пост от имени текущего пользователя.

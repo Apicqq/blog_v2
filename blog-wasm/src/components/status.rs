@@ -4,10 +4,16 @@ use dioxus::prelude::*;
 
 /// Индикатор статуса аутентификации.
 #[component]
-pub(crate) fn StatusBadge(is_authenticated: bool) -> Element {
+pub(crate) fn StatusBadge(has_token: bool, username: Option<String>) -> Element {
     rsx! {
         div { class: "status-pill",
-            if is_authenticated { "Залогинен" } else { "Гость" }
+            if let Some(username) = username {
+                "@{username}"
+            } else if has_token {
+                "Залогинен"
+            } else {
+                "Гость"
+            }
         }
     }
 }

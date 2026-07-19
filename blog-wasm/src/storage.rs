@@ -1,4 +1,4 @@
-//! Хранение JWT-токена в браузере.
+//! Хранение токена пользователя в браузере.
 
 use gloo_storage::{LocalStorage, Storage};
 
@@ -13,6 +13,6 @@ pub(crate) fn save_token_to_storage(token: &str) {
     let _ = LocalStorage::set(TOKEN_KEY, token).ok();
 }
 
-pub(crate) fn clear_token() {
+pub(crate) fn clear_session() {
     LocalStorage::delete(TOKEN_KEY);
 }

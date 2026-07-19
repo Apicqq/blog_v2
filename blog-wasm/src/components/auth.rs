@@ -2,6 +2,7 @@
 
 use crate::api;
 use crate::components::NotificationState;
+use crate::models::User;
 use crate::storage;
 use dioxus::prelude::*;
 
@@ -9,15 +10,16 @@ use dioxus::prelude::*;
 #[component]
 pub(crate) fn AuthPanel(
     token: Signal<Option<String>>,
+    current_user: Signal<Option<User>>,
     notification: Signal<Option<NotificationState>>,
 ) -> Element {
     rsx! {
         article { class: "auth-panel",
             h2 { "Аккаунт" }
 
-            RegisterForm { token, notification }
-            LoginForm { token, notification }
-            LogoutButton { token, notification }
+            RegisterForm { token, current_user, notification }
+            LoginForm { token, current_user, notification }
+            LogoutButton { token, current_user, notification }
         }
     }
 }
@@ -25,6 +27,7 @@ pub(crate) fn AuthPanel(
 #[component]
 fn RegisterForm(
     mut token: Signal<Option<String>>,
+    mut current_user: Signal<Option<User>>,
     mut notification: Signal<Option<NotificationState>>,
 ) -> Element {
     let mut username = use_signal(String::new);
@@ -67,10 +70,14 @@ fn RegisterForm(
                     spawn(async move {
                         match api::register(&username, &email, &password).await {
                             Ok(response) => {
+                                let user = response.user;
+                                let current_username = user.username.clone();
+                                let current_email = user.email.clone();
+
                                 token.set(Some(response.token));
+                                current_user.set(Some(user));
                                 notification.set(Some(NotificationState::success(format!(
-                                    "Зарегистрирован пользователь {} ({})",
-                                    response.user.username, response.user.email
+                                    "Зарегистрирован пользователь {current_username} ({current_email})"
                                 ))));
                             }
                             Err(api_error) => {
@@ -90,6 +97,7 @@ fn RegisterForm(
 #[component]
 fn LoginForm(
     mut token: Signal<Option<String>>,
+    mut current_user: Signal<Option<User>>,
     mut notification: Signal<Option<NotificationState>>,
 ) -> Element {
     let mut username = use_signal(String::new);
@@ -123,10 +131,14 @@ fn LoginForm(
                     spawn(async move {
                         match api::login(&username, &password).await {
                             Ok(response) => {
+                                let user = response.user;
+                                let current_username = user.username.clone();
+                                let current_email = user.email.clone();
+
                                 token.set(Some(response.token));
+                                current_user.set(Some(user));
                                 notification.set(Some(NotificationState::success(format!(
-                                    "Выполнен вход: {} ({})",
-                                    response.user.username, response.user.email
+                                    "Выполнен вход: {current_username} ({current_email})"
                                 ))));
                             }
                             Err(api_error) => {
@@ -146,6 +158,7 @@ fn LoginForm(
 #[component]
 fn LogoutButton(
     mut token: Signal<Option<String>>,
+    mut current_user: Signal<Option<User>>,
     mut notification: Signal<Option<NotificationState>>,
 ) -> Element {
     rsx! {
@@ -153,8 +166,9 @@ fn LogoutButton(
             button {
                 class: "secondary",
                 onclick: move |_| {
-                    storage::clear_token();
+                    storage::clear_session();
                     token.set(None);
+                    current_user.set(None);
                     notification.set(Some(NotificationState::success("Выполнен выход")));
                 },
                 "Logout"
