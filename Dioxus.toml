@@ -1,0 +1,20 @@
+[application]
+name = "blog-wasm"
+out_dir = "dist"
+sub_package = "blog-wasm"
+asset_dir = "blog-wasm/public"
+
+[web.app]
+title = "Blog"
+
+[web.watcher]
+reload_html = true
+watch_path = ["blog-wasm/src", "blog-wasm/Cargo.toml"]
+
+[web.resource]
+style = ["./assets/main.css"]
+script = []
+
+[web.resource.dev]
+style = []
+script = []

@@ -7,3 +7,13 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
+blog-proto.workspace = true
+thiserror.workspace = true
+reqwest.workspace = true
+tonic.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

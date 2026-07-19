@@ -7,3 +7,26 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
+blog-proto.workspace = true
+tonic.workspace = true
+tonic-reflection.workspace = true
+tokio.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+serde_json.workspace = true
+actix-web.workspace = true
+sea-orm.workspace = true
+async-trait.workspace = true
+argon2.workspace = true
+rand_core.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+jsonwebtoken.workspace = true
+anyhow.workspace = true
+dotenvy.workspace = true
+validator.workspace = true
+futures-util.workspace = true
+actix-web-httpauth.workspace = true
+actix-cors.workspace = true

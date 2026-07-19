@@ -1,0 +1,11 @@
+[package]
+name = "blog-migration"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+sea-orm-migration.workspace = true
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+[lints]
+workspace = true
