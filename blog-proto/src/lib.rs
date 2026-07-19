@@ -1,9 +1,5 @@
 //! Общие protobuf-контракты для сервисов блога.
 
-use prost as _;
-use tonic as _;
-use tonic_prost as _;
-
 /// Сгенерированные protobuf-типы и gRPC-сервисы.
 pub mod generated {
     #![allow(clippy::default_trait_access)]

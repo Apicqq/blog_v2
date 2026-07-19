@@ -1,7 +1,7 @@
 //! Хеширование паролей через `Argon2`.
 
 use argon2::password_hash::{PasswordHash, SaltString};
-use argon2::{Argon2, PasswordHasher as _, PasswordVerifier};
+use argon2::{Argon2, PasswordHasher as ArgonPasswordHasher, PasswordVerifier};
 use rand_core::OsRng;
 
 use crate::application::ports::password_hasher::PasswordHasher;
