@@ -43,6 +43,26 @@ pub(crate) enum ApiError {
     Server(String),
 }
 
+impl ApiError {
+    /// Возвращает сообщение ошибки для отображения пользователю.
+    #[must_use]
+    pub(crate) fn user_message(&self) -> String {
+        match self {
+            Self::Network(_) => {
+                "Не удалось связаться с сервером. Проверьте, что API запущен и CORS настроен."
+                    .to_string()
+            }
+            Self::Unauthorized => "Нужно войти в аккаунт.".to_string(),
+            Self::Forbidden => "Недостаточно прав для этого действия.".to_string(),
+            Self::NotFound => "Запрошенная запись не найдена.".to_string(),
+            Self::Conflict(message) | Self::InvalidRequest(message) => {
+                user_message_from_server(message)
+            }
+            Self::Server(_) => "На сервере произошла ошибка. Попробуйте позже.".to_string(),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct ErrorBody {
     error: String,
@@ -92,6 +112,32 @@ fn api_error_from_status(status: u16, message: String) -> ApiError {
     }
 }
 
+fn user_message_from_server(message: &str) -> String {
+    match message {
+        "email already taken" => "Эта почта уже занята.".to_string(),
+        "username already taken" => "Это имя пользователя уже занято.".to_string(),
+        "invalid credentials" => "Неверное имя пользователя или пароль.".to_string(),
+        "post title must contain at least 3 characters" => {
+            "Заголовок должен содержать минимум 3 символа.".to_string()
+        }
+        "post title must contain at most 255 characters" => {
+            "Заголовок должен содержать не больше 255 символов.".to_string()
+        }
+        "post content must not be empty" => "Текст поста не должен быть пустым.".to_string(),
+        "post content must contain at most 10000 characters" => {
+            "Текст поста должен содержать не больше 10000 символов.".to_string()
+        }
+        "password must contain at least 8 characters" => {
+            "Пароль должен содержать минимум 8 символов.".to_string()
+        }
+        "username must contain at least 3 characters" => {
+            "Имя пользователя должно содержать минимум 3 символа.".to_string()
+        }
+        "email must be valid" => "Введите корректную почту.".to_string(),
+        _ => message.to_string(),
+    }
+}
+
 async fn response_message(response: &Response) -> String {
     if let Ok(body) = response.json::<ErrorBody>().await {
         body.message()
@@ -109,6 +155,22 @@ async fn response_message(response: &Response) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn api_error_user_message_maps_forbidden() {
+        assert_eq!(
+            ApiError::Forbidden.user_message(),
+            "Недостаточно прав для этого действия."
+        );
+    }
+
+    #[test]
+    fn api_error_user_message_maps_validation_message() {
+        assert_eq!(
+            ApiError::InvalidRequest("post content must not be empty".to_string()).user_message(),
+            "Текст поста не должен быть пустым."
+        );
+    }
 
     #[test]
     fn api_error_from_status_maps_validation_statuses() {

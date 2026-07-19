@@ -95,7 +95,7 @@ fn CreatePostForm(
                                 }
                                 Err(api_error) => {
                                     message.set(None);
-                                    error.set(Some(api_error.to_string()));
+                                    error.set(Some(api_error.user_message()));
                                 }
                             }
                         });
@@ -238,7 +238,7 @@ fn PostCard(
                                         }
                                         Err(api_error) => {
                                             message.set(None);
-                                            error.set(Some(api_error.to_string()));
+                                            error.set(Some(api_error.user_message()));
                                         }
                                     }
                                 });
@@ -319,7 +319,7 @@ fn EditPostForm(
                                 }
                                 Err(api_error) => {
                                     message.set(None);
-                                    error.set(Some(api_error.to_string()));
+                                    error.set(Some(api_error.user_message()));
                                 }
                             }
                         });
