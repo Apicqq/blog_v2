@@ -30,7 +30,7 @@ pub(crate) fn AuthPanel(
                 button {
                     class: "secondary",
                     onclick: move |_| is_dialog_open.set(true),
-                    "Sign up"
+                    "Регистрация"
                 }
             }
         }
@@ -103,15 +103,15 @@ fn RegisterForm(
     rsx! {
         div { class: "auth-form",
             label {
-                "Username"
+                "Имя пользователя"
                 input {
                     value: "{username}",
-                    placeholder: "very_cool_username",
+                    placeholder: "ivan_ivanov",
                     oninput: move |event| username.set(event.value()),
                 }
             }
             label {
-                "Email"
+                "Почта"
                 input {
                     value: "{email}",
                     placeholder: "name@example.com",
@@ -119,11 +119,11 @@ fn RegisterForm(
                 }
             }
             label {
-                "Password"
+                "Пароль"
                 input {
                     r#type: "password",
                     value: "{password}",
-                    placeholder: "minimum 8 characters",
+                    placeholder: "Минимум 8 символов",
                     oninput: move |event| password.set(event.value()),
                 }
             }
@@ -155,7 +155,7 @@ fn RegisterForm(
                         }
                     });
                 },
-                "Register"
+                "Зарегистрироваться"
             }
         }
     }
@@ -174,19 +174,19 @@ fn LoginForm(
     rsx! {
         div { class: "auth-form",
             label {
-                "Username"
+                "Имя пользователя"
                 input {
                     value: "{username}",
-                    placeholder: "very_cool_username",
+                    placeholder: "ivan_ivanov",
                     oninput: move |event| username.set(event.value()),
                 }
             }
             label {
-                "Password"
+                "Пароль"
                 input {
                     r#type: "password",
                     value: "{password}",
-                    placeholder: "minimum 8 characters",
+                    placeholder: "Минимум 8 символов",
                     oninput: move |event| password.set(event.value()),
                 }
             }
@@ -218,7 +218,7 @@ fn LoginForm(
                         }
                     });
                 },
-                "Login"
+                "Войти"
             }
         }
     }
@@ -239,7 +239,7 @@ fn LogoutButton(
                 current_user.set(None);
                 notification.set(Some(NotificationState::success("Выполнен выход")));
             },
-            "Logout"
+            "Выйти"
         }
     }
 }

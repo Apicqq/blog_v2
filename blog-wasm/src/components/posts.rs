@@ -57,7 +57,7 @@ fn CreatePostForm(
         if token.read().is_some() {
             div { class: "post-form",
                 label {
-                    "Title"
+                    "Заголовок"
                     input {
                         value: "{title}",
                         placeholder: "Новый пост",
@@ -65,7 +65,7 @@ fn CreatePostForm(
                     }
                 }
                 label {
-                    "Content"
+                    "Текст"
                     textarea {
                         value: "{content}",
                         placeholder: "Текст поста",
@@ -102,7 +102,7 @@ fn CreatePostForm(
                             }
                         });
                     },
-                    "Create post"
+                    "Опубликовать"
                 }
             }
         } else {
@@ -198,7 +198,7 @@ fn PostCard(
                                 notification.set(None);
                             }
                         },
-                        "Edit"
+                        "Редактировать"
                     }
                     button {
                         class: "danger",
@@ -231,7 +231,7 @@ fn PostCard(
                                 });
                             }
                         },
-                        "Delete"
+                        "Удалить"
                     }
                 }
             }
@@ -264,14 +264,14 @@ fn EditPostForm(
     rsx! {
         div { class: "edit-form",
             label {
-                "Title"
+                "Заголовок"
                 input {
                     value: "{edit_title}",
                     oninput: move |event| edit_title.set(event.value()),
                 }
             }
             label {
-                "Content"
+                "Текст"
                 textarea {
                     value: "{edit_content}",
                     oninput: move |event| edit_content.set(event.value()),
@@ -312,7 +312,7 @@ fn EditPostForm(
                             }
                         });
                     },
-                    "Save"
+                    "Сохранить"
                 }
                 button {
                     class: "secondary",
@@ -321,7 +321,7 @@ fn EditPostForm(
                         edit_title.set(String::new());
                         edit_content.set(String::new());
                     },
-                    "Cancel"
+                    "Отмена"
                 }
             }
         }
