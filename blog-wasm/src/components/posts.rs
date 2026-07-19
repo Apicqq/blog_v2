@@ -7,13 +7,16 @@ use crate::models::{Post, PostPage};
 use crate::session;
 use dioxus::prelude::*;
 
+const POSTS_LIMIT: u64 = 10;
+
 /// Панель списка постов.
 #[component]
 pub(crate) fn PostsPanel(
     token: Signal<Option<String>>,
     notification: Signal<Option<NotificationState>>,
 ) -> Element {
-    let posts = use_resource(|| async { api::list_posts(10, 0).await });
+    let offset = use_signal(|| 0_u64);
+    let posts = use_resource(move || async move { api::list_posts(POSTS_LIMIT, offset()).await });
     let title = use_signal(String::new);
     let content = use_signal(String::new);
     let edit_post_id = use_signal(|| None::<i64>);
@@ -31,6 +34,7 @@ pub(crate) fn PostsPanel(
                 posts,
                 title,
                 content,
+                offset,
                 notification,
             }
             PostsList {
@@ -39,6 +43,7 @@ pub(crate) fn PostsPanel(
                 edit_post_id,
                 edit_title,
                 edit_content,
+                offset,
                 notification,
             }
         }
@@ -51,6 +56,7 @@ fn CreatePostForm(
     mut posts: Resource<Result<PostPage, ApiError>>,
     mut title: Signal<String>,
     mut content: Signal<String>,
+    mut offset: Signal<u64>,
     notification: Signal<Option<NotificationState>>,
 ) -> Element {
     rsx! {
@@ -92,6 +98,7 @@ fn CreatePostForm(
                                         "Пост создан: {}",
                                         post.title
                                     ))));
+                                    offset.set(0);
                                     posts.restart();
                                 }
                                 Err(api_error) => {
@@ -121,13 +128,14 @@ fn PostsList(
     edit_post_id: Signal<Option<i64>>,
     edit_title: Signal<String>,
     edit_content: Signal<String>,
+    offset: Signal<u64>,
     notification: Signal<Option<NotificationState>>,
 ) -> Element {
     rsx! {
         div { class: "post-list",
             match posts.read().as_ref() {
                 Some(Ok(page)) => rsx! {
-                    p { class: "posts-summary", "Всего постов: {page.total}. Лимит: {page.limit}, смещение: {page.offset}." }
+                    p { class: "posts-summary", "Всего постов: {page.total}." }
                     if page.posts.is_empty() {
                         div { class: "empty-state",
                             strong { "Постов пока нет" }
@@ -146,6 +154,12 @@ fn PostsList(
                                 notification,
                             }
                         }
+                        PaginationControls {
+                            total: page.total,
+                            limit: page.limit,
+                            offset: page.offset,
+                            offset_signal: offset,
+                        }
                     }
                 },
                 Some(Err(api_error)) => rsx! {
@@ -157,6 +171,41 @@ fn PostsList(
                 None => rsx! {
                     p { "Загружаем посты..." }
                 },
+            }
+        }
+    }
+}
+
+#[component]
+fn PaginationControls(
+    total: u64,
+    limit: u64,
+    offset: u64,
+    mut offset_signal: Signal<u64>,
+) -> Element {
+    let current_page = offset / limit + 1;
+    let total_pages = total.div_ceil(limit).max(1);
+    let has_previous = offset > 0;
+    let has_next = offset + limit < total;
+
+    rsx! {
+        div { class: "pagination",
+            button {
+                class: "secondary",
+                disabled: !has_previous,
+                onclick: move |_| {
+                    offset_signal.set(offset.saturating_sub(limit));
+                },
+                "Назад"
+            }
+            span { "Страница {current_page} из {total_pages}" }
+            button {
+                class: "secondary",
+                disabled: !has_next,
+                onclick: move |_| {
+                    offset_signal.set(offset + limit);
+                },
+                "Вперед"
             }
         }
     }
