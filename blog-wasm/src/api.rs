@@ -26,6 +26,22 @@ pub(crate) async fn list_posts(limit: u64, offset: u64) -> Result<PostPage, ApiE
     Ok(response.json::<PostPage>().await?)
 }
 
+/// Загружает пост по идентификатору.
+///
+/// # Errors
+///
+/// Возвращает ошибку, если HTTP-запрос завершился неуспешно
+/// или ответ не удалось десериализовать.
+pub(crate) async fn get_post(id: i64) -> Result<Post, ApiError> {
+    let response = Request::get(&api_url(&format!("/posts/{id}")))
+        .send()
+        .await?;
+
+    ensure_success(&response).await?;
+
+    Ok(response.json::<Post>().await?)
+}
+
 /// Регистрирует пользователя и сохраняет JWT-токен в `localStorage`.
 ///
 /// # Errors

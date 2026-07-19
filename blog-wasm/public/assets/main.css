@@ -161,6 +161,10 @@ p {
   box-shadow: 0 24px 72px rgba(20, 31, 41, 0.22);
 }
 
+.post-dialog {
+  width: min(560px, 100%);
+}
+
 .dialog-heading {
   display: flex;
   align-items: center;
@@ -374,7 +378,17 @@ button.text-button:hover {
   padding: 14px;
 }
 
-.post-list span {
+.post-item-detail {
+  margin-top: 16px;
+  padding: 18px;
+}
+
+.post-item-detail p {
+  white-space: pre-wrap;
+}
+
+.post-list span,
+.post-details span {
   color: #5d6974;
 }
 
