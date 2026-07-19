@@ -145,7 +145,7 @@ fn PostsList(
                     if page.posts.is_empty() {
                         div { class: "empty-state",
                             strong { "Постов пока нет" }
-                            span { "Когда в API появятся посты, они отобразятся здесь." }
+                            span { "Но совсем скоро они появятся именно здесь." }
                         }
                     } else {
                         for post in &page.posts {
@@ -168,10 +168,14 @@ fn PostsList(
                         }
                     }
                 },
-                Some(Err(api_error)) => rsx! {
-                    div { class: "error-message",
-                        strong { "Не удалось загрузить посты" }
-                        span { "{api_error}" }
+                Some(Err(api_error)) => {
+                    let message = api_error.user_message();
+
+                    rsx! {
+                        div { class: "error-message",
+                            strong { "Не удалось загрузить посты" }
+                            span { "{message}" }
+                        }
                     }
                 },
                 None => rsx! {

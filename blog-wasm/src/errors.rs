@@ -49,7 +49,7 @@ impl ApiError {
     pub(crate) fn user_message(&self) -> String {
         match self {
             Self::Network(_) => {
-                "Не удалось связаться с сервером. Проверьте, что API запущен и CORS настроен."
+                "Не удалось связаться с сервером. Пожалуйста, повторите попытку позднее."
                     .to_string()
             }
             Self::Unauthorized(message) => user_message_from_server(message),
