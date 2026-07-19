@@ -52,9 +52,9 @@ async fn list_posts_handler(
     let query = query.into_inner();
     let limit = query.limit();
     let offset = query.offset();
-    let page = service.list_posts(limit, offset).await?;
+    let page = service.list_posts_with_authors(limit, offset).await?;
 
-    Ok(HttpResponse::Ok().json(ListPostsResponse::new(page, limit, offset)))
+    Ok(HttpResponse::Ok().json(ListPostsResponse::with_authors(page, limit, offset)))
 }
 
 /// Возвращает пост по идентификатору.
@@ -62,7 +62,7 @@ async fn get_post_handler(
     service: web::Data<BlogPostService>,
     post_id: web::Path<i64>,
 ) -> Result<HttpResponse, DomainError> {
-    let post = service.get_post(post_id.into_inner()).await?;
+    let post = service.get_post_with_author(post_id.into_inner()).await?;
 
     Ok(HttpResponse::Ok().json(PostResponse::from(post)))
 }
@@ -77,6 +77,7 @@ async fn create_post_handler(
     let post = service
         .create_post(user.user_id, payload.title, payload.content)
         .await?;
+    let post = service.get_post_with_author(post.id).await?;
 
     Ok(HttpResponse::Created().json(PostResponse::from(post)))
 }
@@ -92,6 +93,7 @@ async fn update_post_handler(
     let post = service
         .update_post(user.user_id, post_id.into_inner(), payload.try_into()?)
         .await?;
+    let post = service.get_post_with_author(post.id).await?;
 
     Ok(HttpResponse::Ok().json(PostResponse::from(post)))
 }

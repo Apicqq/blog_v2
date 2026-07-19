@@ -1,6 +1,7 @@
 //! DTO постов блога.
 
-use crate::application::blog_service::PostPage;
+use crate::application::blog_service::{PostPage, PostWithAuthorPage};
+use crate::application::ports::post_repository::PostWithAuthor;
 use crate::domain::errors::DomainError;
 use crate::domain::post::{Post, UpdatePost};
 use chrono::{DateTime, Utc};
@@ -46,6 +47,8 @@ pub struct PostResponse {
     pub content: String,
     /// Идентификатор автора поста.
     pub author_id: String,
+    /// Имя автора поста.
+    pub author_username: String,
     /// Время создания поста.
     pub created_at: DateTime<Utc>,
     /// Время последнего обновления поста.
@@ -59,8 +62,23 @@ impl From<Post> for PostResponse {
             title: post.title,
             content: post.content,
             author_id: post.author_id.to_string(),
+            author_username: String::new(),
             created_at: post.created_at,
             updated_at: post.updated_at,
+        }
+    }
+}
+
+impl From<PostWithAuthor> for PostResponse {
+    fn from(post: PostWithAuthor) -> Self {
+        Self {
+            id: post.post.id,
+            title: post.post.title,
+            content: post.post.content,
+            author_id: post.post.author_id.to_string(),
+            author_username: post.author_username,
+            created_at: post.post.created_at,
+            updated_at: post.post.updated_at,
         }
     }
 }
@@ -107,6 +125,17 @@ impl ListPostsResponse {
     /// Создает ответ со списком постов.
     #[must_use]
     pub fn new(page: PostPage, limit: u64, offset: u64) -> Self {
+        Self {
+            posts: page.posts.into_iter().map(PostResponse::from).collect(),
+            total: page.total,
+            limit,
+            offset,
+        }
+    }
+
+    /// Создает ответ со списком постов и отображаемыми данными авторов.
+    #[must_use]
+    pub fn with_authors(page: PostWithAuthorPage, limit: u64, offset: u64) -> Self {
         Self {
             posts: page.posts.into_iter().map(PostResponse::from).collect(),
             total: page.total,
