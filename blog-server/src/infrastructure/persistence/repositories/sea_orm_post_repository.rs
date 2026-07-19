@@ -7,10 +7,11 @@ use sea_orm::{
     QuerySelect, Set, Unchanged,
 };
 
-use crate::application::ports::post_repository::PostRepository;
+use crate::application::ports::post_repository::{PostRepository, PostWithAuthor};
 use crate::domain::errors::DomainError;
 use crate::domain::post::{Post, PostAttributes};
 use crate::infrastructure::persistence::entities::post::{ActiveModel, Column, Entity as DBPost};
+use crate::infrastructure::persistence::entities::user::Entity as DBUser;
 
 /// `SeaORM`-реализация хранилища постов.
 #[derive(Debug, Clone)]
@@ -49,6 +50,15 @@ impl PostRepository for SeaOrmPostRepository {
         Ok(post.map(Post::from))
     }
 
+    async fn find_with_author_by_id(&self, id: i64) -> Result<Option<PostWithAuthor>, DomainError> {
+        let post = DBPost::find_by_id(id)
+            .find_also_related(DBUser)
+            .one(&self.db)
+            .await?;
+
+        post.map(post_with_author_from_models).transpose()
+    }
+
     async fn update(&self, post: Post) -> Result<Post, DomainError> {
         let active_model = ActiveModel {
             id: Unchanged(post.id),
@@ -85,9 +95,45 @@ impl PostRepository for SeaOrmPostRepository {
         Ok(posts.into_iter().map(Post::from).collect())
     }
 
+    async fn list_with_authors(
+        &self,
+        limit: u64,
+        offset: u64,
+    ) -> Result<Vec<PostWithAuthor>, DomainError> {
+        let posts = DBPost::find()
+            .find_also_related(DBUser)
+            .order_by_desc(Column::CreatedAt)
+            .limit(limit)
+            .offset(offset)
+            .all(&self.db)
+            .await?;
+
+        posts
+            .into_iter()
+            .map(post_with_author_from_models)
+            .collect()
+    }
+
     async fn count(&self) -> Result<u64, DomainError> {
         let count = DBPost::find().count(&self.db).await?;
 
         Ok(count)
     }
+}
+
+fn post_with_author_from_models(
+    value: (
+        crate::infrastructure::persistence::entities::post::Model,
+        Option<crate::infrastructure::persistence::entities::user::Model>,
+    ),
+) -> Result<PostWithAuthor, DomainError> {
+    let (post, author) = value;
+    let author = author.ok_or_else(|| {
+        DomainError::Internal(format!("author for post {} was not found", post.id))
+    })?;
+
+    Ok(PostWithAuthor {
+        post: Post::from(post),
+        author_username: author.username,
+    })
 }

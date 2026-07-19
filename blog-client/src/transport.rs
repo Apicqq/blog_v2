@@ -35,7 +35,7 @@ impl BlogClient {
     /// Возвращает ошибку, если gRPC-соединение не удалось установить.
     pub async fn new(transport: Transport) -> Result<Self, BlogClientError> {
         let transport = match transport {
-            Transport::Http(base_url) => ClientTransport::Http(HttpClient::new(&base_url)),
+            Transport::Http(base_url) => ClientTransport::Http(HttpClient::new(&base_url)?),
             Transport::Grpc(endpoint) => {
                 ClientTransport::Grpc(GrpcClient::connect(endpoint).await?)
             }

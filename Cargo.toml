@@ -59,9 +59,14 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "time"] }
 jsonwebtoken = { version = "10", default-features = false, features = ["rust_crypto"] }
 anyhow = "1"
+base64 = "0.22"
 dotenvy = "0.15"
 validator = "0.20"
 futures-util = "0.3"
 actix-web-httpauth = "0.8"
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
 clap = { version = "4", features = ["derive"] }
+dioxus = { version = "0.7", features = ["web"] }
+wasm-bindgen = { version = "0.2" }
+gloo-net = { version = "0.7", default-features = false, features = ["http", "json"] }
+gloo-storage = "0.4"

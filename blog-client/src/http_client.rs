@@ -3,6 +3,7 @@
 use crate::errors::BlogClientError;
 use crate::models::{AuthResponse, Post, PostPage};
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 /// HTTP-клиент блога.
 #[derive(Debug, Clone)]
@@ -59,12 +60,19 @@ impl ErrorResponse {
 
 impl HttpClient {
     /// Создает новый HTTP-клиент блога.
-    #[must_use]
-    pub fn new(base_url: &str) -> Self {
-        Self {
+    ///
+    /// # Errors
+    ///
+    /// Возвращает ошибку, если внутренний `reqwest`-клиент не удалось сконфигурировать.
+    pub fn new(base_url: &str) -> Result<Self, BlogClientError> {
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(10))
+            .build()?;
+
+        Ok(Self {
             base_url: base_url.trim_end_matches('/').to_string(),
-            client: reqwest::Client::new(),
-        }
+            client,
+        })
     }
 
     /// Возвращает базовый URL HTTP API.
@@ -275,14 +283,14 @@ mod tests {
 
     #[test]
     fn new_trims_trailing_slash_from_base_url() {
-        let client = HttpClient::new("http://localhost:8080/");
+        let client = HttpClient::new("http://localhost:8080/").expect("Client should be created");
 
         assert_eq!(client.base_url(), "http://localhost:8080");
     }
 
     #[test]
     fn api_endpoint_builds_url_under_api_scope() {
-        let client = HttpClient::new("http://localhost:8080/");
+        let client = HttpClient::new("http://localhost:8080/").expect("Client should be created");
 
         assert_eq!(
             client.api_endpoint("/auth/register"),
