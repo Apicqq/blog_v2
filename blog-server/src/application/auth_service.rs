@@ -3,6 +3,7 @@
 use std::sync::Arc;
 
 use tracing::{info, instrument, warn};
+use uuid::Uuid;
 
 use crate::application::ports::password_hasher::PasswordHasher;
 use crate::application::ports::token_service::TokenService;
@@ -119,5 +120,18 @@ where
         info!(user_id = %user.id, username = %user.username, "user logged in");
 
         Ok(AuthSession::new(token, user))
+    }
+
+    /// Возвращает текущего пользователя по идентификатору из токена.
+    ///
+    /// # Errors
+    ///
+    /// Возвращает доменную ошибку, если пользователь не найден или хранилище недоступно.
+    #[instrument(skip(self), fields(user_id = %user_id))]
+    pub async fn current_user(&self, user_id: Uuid) -> Result<User, DomainError> {
+        self.repo
+            .find_by_id(user_id)
+            .await?
+            .ok_or_else(|| DomainError::UserNotFound(user_id.to_string()))
     }
 }
