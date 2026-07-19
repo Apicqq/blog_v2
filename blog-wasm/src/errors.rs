@@ -19,8 +19,8 @@ pub(crate) enum ApiError {
     Network(#[from] gloo_net::Error),
 
     /// Пользователь не авторизован.
-    #[error("unauthorized")]
-    Unauthorized,
+    #[error("unauthorized: {0}")]
+    Unauthorized(String),
 
     /// Доступ к ресурсу запрещен.
     #[error("forbidden")]
@@ -52,7 +52,7 @@ impl ApiError {
                 "Не удалось связаться с сервером. Проверьте, что API запущен и CORS настроен."
                     .to_string()
             }
-            Self::Unauthorized => "Нужно войти в аккаунт.".to_string(),
+            Self::Unauthorized(message) => user_message_from_server(message),
             Self::Forbidden => "Недостаточно прав для этого действия.".to_string(),
             Self::NotFound => "Запрошенная запись не найдена.".to_string(),
             Self::Conflict(message) | Self::InvalidRequest(message) => {
@@ -104,7 +104,7 @@ pub(crate) async fn ensure_success(response: &Response) -> Result<(), ApiError> 
 fn api_error_from_status(status: u16, message: String) -> ApiError {
     match status {
         BAD_REQUEST | UNPROCESSABLE_ENTITY => ApiError::InvalidRequest(message),
-        UNAUTHORIZED => ApiError::Unauthorized,
+        UNAUTHORIZED => ApiError::Unauthorized(message),
         FORBIDDEN => ApiError::Forbidden,
         NOT_FOUND => ApiError::NotFound,
         CONFLICT => ApiError::Conflict(message),
@@ -116,7 +116,12 @@ fn user_message_from_server(message: &str) -> String {
     match message {
         "email already taken" => "Эта почта уже занята.".to_string(),
         "username already taken" => "Это имя пользователя уже занято.".to_string(),
-        "invalid credentials" => "Неверное имя пользователя или пароль.".to_string(),
+        "invalid credentials" | "username or password is incorrect" => {
+            "Неверное имя пользователя или пароль.".to_string()
+        }
+        "authentication is required to access this resource"
+        | "invalid authorization token"
+        | "Unauthorized" => "Нужно войти в аккаунт.".to_string(),
         "post title must contain at least 3 characters" => {
             "Заголовок должен содержать минимум 3 символа.".to_string()
         }
@@ -161,6 +166,25 @@ mod tests {
         assert_eq!(
             ApiError::Forbidden.user_message(),
             "Недостаточно прав для этого действия."
+        );
+    }
+
+    #[test]
+    fn api_error_user_message_maps_invalid_credentials() {
+        assert_eq!(
+            ApiError::Unauthorized("username or password is incorrect".to_string()).user_message(),
+            "Неверное имя пользователя или пароль."
+        );
+    }
+
+    #[test]
+    fn api_error_user_message_maps_auth_required() {
+        assert_eq!(
+            ApiError::Unauthorized(
+                "authentication is required to access this resource".to_string()
+            )
+            .user_message(),
+            "Нужно войти в аккаунт."
         );
     }
 
