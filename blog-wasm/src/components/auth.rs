@@ -1,30 +1,23 @@
 //! Компонент регистрации и входа.
 
 use crate::api;
+use crate::components::NotificationState;
 use crate::storage;
 use dioxus::prelude::*;
 
 /// Панель регистрации и входа пользователя.
 #[component]
-pub(crate) fn AuthPanel(token: Signal<Option<String>>) -> Element {
-    let message = use_signal(|| None::<String>);
-    let error = use_signal(|| None::<String>);
-
+pub(crate) fn AuthPanel(
+    token: Signal<Option<String>>,
+    notification: Signal<Option<NotificationState>>,
+) -> Element {
     rsx! {
         article { class: "auth-panel",
             h2 { "Аккаунт" }
 
-            RegisterForm { token, message, error }
-            LoginForm { token, message, error }
-            LogoutButton { token, message, error }
-
-            if let Some(current_message) = message.read().as_ref() {
-                p { class: "success-message", "{current_message}" }
-            }
-
-            if let Some(current_error) = error.read().as_ref() {
-                p { class: "error-message", "{current_error}" }
-            }
+            RegisterForm { token, notification }
+            LoginForm { token, notification }
+            LogoutButton { token, notification }
         }
     }
 }
@@ -32,8 +25,7 @@ pub(crate) fn AuthPanel(token: Signal<Option<String>>) -> Element {
 #[component]
 fn RegisterForm(
     mut token: Signal<Option<String>>,
-    mut message: Signal<Option<String>>,
-    mut error: Signal<Option<String>>,
+    mut notification: Signal<Option<NotificationState>>,
 ) -> Element {
     let mut username = use_signal(String::new);
     let mut email = use_signal(String::new);
@@ -76,15 +68,15 @@ fn RegisterForm(
                         match api::register(&username, &email, &password).await {
                             Ok(response) => {
                                 token.set(Some(response.token));
-                                error.set(None);
-                                message.set(Some(format!(
+                                notification.set(Some(NotificationState::success(format!(
                                     "Зарегистрирован пользователь {} ({})",
                                     response.user.username, response.user.email
-                                )));
+                                ))));
                             }
                             Err(api_error) => {
-                                message.set(None);
-                                error.set(Some(api_error.user_message()));
+                                notification.set(Some(NotificationState::error(
+                                    api_error.user_message(),
+                                )));
                             }
                         }
                     });
@@ -98,8 +90,7 @@ fn RegisterForm(
 #[component]
 fn LoginForm(
     mut token: Signal<Option<String>>,
-    mut message: Signal<Option<String>>,
-    mut error: Signal<Option<String>>,
+    mut notification: Signal<Option<NotificationState>>,
 ) -> Element {
     let mut username = use_signal(String::new);
     let mut password = use_signal(String::new);
@@ -133,15 +124,15 @@ fn LoginForm(
                         match api::login(&username, &password).await {
                             Ok(response) => {
                                 token.set(Some(response.token));
-                                error.set(None);
-                                message.set(Some(format!(
+                                notification.set(Some(NotificationState::success(format!(
                                     "Выполнен вход: {} ({})",
                                     response.user.username, response.user.email
-                                )));
+                                ))));
                             }
                             Err(api_error) => {
-                                message.set(None);
-                                error.set(Some(api_error.user_message()));
+                                notification.set(Some(NotificationState::error(
+                                    api_error.user_message(),
+                                )));
                             }
                         }
                     });
@@ -155,8 +146,7 @@ fn LoginForm(
 #[component]
 fn LogoutButton(
     mut token: Signal<Option<String>>,
-    mut message: Signal<Option<String>>,
-    mut error: Signal<Option<String>>,
+    mut notification: Signal<Option<NotificationState>>,
 ) -> Element {
     rsx! {
         if token.read().is_some() {
@@ -165,8 +155,7 @@ fn LogoutButton(
                 onclick: move |_| {
                     storage::clear_token();
                     token.set(None);
-                    error.set(None);
-                    message.set(Some("Выполнен выход".to_string()));
+                    notification.set(Some(NotificationState::success("Выполнен выход")));
                 },
                 "Logout"
             }

@@ -1,21 +1,23 @@
 //! Компонент списка постов.
 
 use crate::api;
+use crate::components::NotificationState;
 use crate::errors::ApiError;
 use crate::models::{Post, PostPage};
 use dioxus::prelude::*;
 
 /// Панель списка постов.
 #[component]
-pub(crate) fn PostsPanel(token: Signal<Option<String>>) -> Element {
+pub(crate) fn PostsPanel(
+    token: Signal<Option<String>>,
+    notification: Signal<Option<NotificationState>>,
+) -> Element {
     let posts = use_resource(|| async { api::list_posts(10, 0).await });
     let title = use_signal(String::new);
     let content = use_signal(String::new);
     let edit_post_id = use_signal(|| None::<i64>);
     let edit_title = use_signal(String::new);
     let edit_content = use_signal(String::new);
-    let message = use_signal(|| None::<String>);
-    let error = use_signal(|| None::<String>);
 
     rsx! {
         article { class: "posts-panel",
@@ -28,18 +30,15 @@ pub(crate) fn PostsPanel(token: Signal<Option<String>>) -> Element {
                 posts,
                 title,
                 content,
-                message,
-                error,
+                notification,
             }
-            Feedback { message, error }
             PostsList {
                 token,
                 posts,
                 edit_post_id,
                 edit_title,
                 edit_content,
-                message,
-                error,
+                notification,
             }
         }
     }
@@ -51,8 +50,7 @@ fn CreatePostForm(
     mut posts: Resource<Result<PostPage, ApiError>>,
     mut title: Signal<String>,
     mut content: Signal<String>,
-    message: Signal<Option<String>>,
-    error: Signal<Option<String>>,
+    notification: Signal<Option<NotificationState>>,
 ) -> Element {
     rsx! {
         if token.read().is_some() {
@@ -76,7 +74,7 @@ fn CreatePostForm(
                 button {
                     onclick: move |_| {
                         let Some(current_token) = token.read().clone() else {
-                            set_error(error, message, "Нужно войти, чтобы создать пост");
+                            set_error(notification, "Нужно войти, чтобы создать пост");
                             return;
                         };
                         let current_title = title.read().clone();
@@ -89,13 +87,16 @@ fn CreatePostForm(
                                 Ok(post) => {
                                     title.set(String::new());
                                     content.set(String::new());
-                                    error.set(None);
-                                    message.set(Some(format!("Пост создан: {}", post.title)));
+                                    notification.set(Some(NotificationState::success(format!(
+                                        "Пост создан: {}",
+                                        post.title
+                                    ))));
                                     posts.restart();
                                 }
                                 Err(api_error) => {
-                                    message.set(None);
-                                    error.set(Some(api_error.user_message()));
+                                    notification.set(Some(NotificationState::error(
+                                        api_error.user_message(),
+                                    )));
                                 }
                             }
                         });
@@ -113,27 +114,13 @@ fn CreatePostForm(
 }
 
 #[component]
-fn Feedback(message: Signal<Option<String>>, error: Signal<Option<String>>) -> Element {
-    rsx! {
-        if let Some(current_message) = message.read().as_ref() {
-            p { class: "success-message", "{current_message}" }
-        }
-
-        if let Some(current_error) = error.read().as_ref() {
-            p { class: "error-message", "{current_error}" }
-        }
-    }
-}
-
-#[component]
 fn PostsList(
     token: Signal<Option<String>>,
     posts: Resource<Result<PostPage, ApiError>>,
     edit_post_id: Signal<Option<i64>>,
     edit_title: Signal<String>,
     edit_content: Signal<String>,
-    message: Signal<Option<String>>,
-    error: Signal<Option<String>>,
+    notification: Signal<Option<NotificationState>>,
 ) -> Element {
     rsx! {
         div { class: "post-list",
@@ -155,8 +142,7 @@ fn PostsList(
                                 edit_post_id,
                                 edit_title,
                                 edit_content,
-                                message,
-                                error,
+                                notification,
                             }
                         }
                     }
@@ -183,8 +169,7 @@ fn PostCard(
     mut edit_post_id: Signal<Option<i64>>,
     mut edit_title: Signal<String>,
     mut edit_content: Signal<String>,
-    message: Signal<Option<String>>,
-    error: Signal<Option<String>>,
+    notification: Signal<Option<NotificationState>>,
 ) -> Element {
     rsx! {
         article { class: "post-item",
@@ -209,8 +194,7 @@ fn PostCard(
                                 edit_post_id.set(Some(post_id));
                                 edit_title.set(post_title.clone());
                                 edit_content.set(post_content.clone());
-                                message.set(None);
-                                error.set(None);
+                                notification.set(None);
                             }
                         },
                         "Edit"
@@ -222,23 +206,25 @@ fn PostCard(
 
                             move |_| {
                                 let Some(current_token) = token.read().clone() else {
-                                    set_error(error, message, "Нужно войти, чтобы удалить пост");
+                                    set_error(notification, "Нужно войти, чтобы удалить пост");
                                     return;
                                 };
 
                                 spawn(async move {
                                     match api::delete_post(&current_token, post_id).await {
                                         Ok(()) => {
-                                            error.set(None);
-                                            message.set(Some("Пост удален".to_string()));
+                                            notification.set(Some(NotificationState::success(
+                                                "Пост удален",
+                                            )));
                                             if edit_post_id.read().is_some_and(|id| id == post_id) {
                                                 edit_post_id.set(None);
                                             }
                                             posts.restart();
                                         }
                                         Err(api_error) => {
-                                            message.set(None);
-                                            error.set(Some(api_error.user_message()));
+                                            notification.set(Some(NotificationState::error(
+                                                api_error.user_message(),
+                                            )));
                                         }
                                     }
                                 });
@@ -257,8 +243,7 @@ fn PostCard(
                     edit_post_id,
                     edit_title,
                     edit_content,
-                    message,
-                    error,
+                    notification,
                 }
             }
         }
@@ -273,8 +258,7 @@ fn EditPostForm(
     mut edit_post_id: Signal<Option<i64>>,
     mut edit_title: Signal<String>,
     mut edit_content: Signal<String>,
-    message: Signal<Option<String>>,
-    error: Signal<Option<String>>,
+    notification: Signal<Option<NotificationState>>,
 ) -> Element {
     rsx! {
         div { class: "edit-form",
@@ -296,7 +280,7 @@ fn EditPostForm(
                 button {
                     onclick: move |_| {
                         let Some(current_token) = token.read().clone() else {
-                            set_error(error, message, "Нужно войти, чтобы обновить пост");
+                            set_error(notification, "Нужно войти, чтобы обновить пост");
                             return;
                         };
                         let current_title = edit_title.read().clone();
@@ -313,13 +297,16 @@ fn EditPostForm(
                             {
                                 Ok(post) => {
                                     edit_post_id.set(None);
-                                    error.set(None);
-                                    message.set(Some(format!("Пост обновлен: {}", post.title)));
+                                    notification.set(Some(NotificationState::success(format!(
+                                        "Пост обновлен: {}",
+                                        post.title
+                                    ))));
                                     posts.restart();
                                 }
                                 Err(api_error) => {
-                                    message.set(None);
-                                    error.set(Some(api_error.user_message()));
+                                    notification.set(Some(NotificationState::error(
+                                        api_error.user_message(),
+                                    )));
                                 }
                             }
                         });
@@ -340,9 +327,8 @@ fn EditPostForm(
     }
 }
 
-fn set_error(mut error: Signal<Option<String>>, mut message: Signal<Option<String>>, value: &str) {
-    error.set(Some(value.to_string()));
-    message.set(None);
+fn set_error(mut notification: Signal<Option<NotificationState>>, value: &str) {
+    notification.set(Some(NotificationState::error(value)));
 }
 
 fn format_datetime(value: &str) -> String {

@@ -1,6 +1,6 @@
 //! Корневой компонент WASM-приложения.
 
-use crate::components::{AuthPanel, PostsPanel, StatusBadge};
+use crate::components::{AuthPanel, NotificationHost, NotificationState, PostsPanel, StatusBadge};
 use crate::storage;
 use dioxus::prelude::*;
 
@@ -8,9 +8,12 @@ use dioxus::prelude::*;
 #[component]
 pub(crate) fn App() -> Element {
     let token = use_signal(storage::get_token_from_storage);
+    let notification = use_signal(|| None::<NotificationState>);
 
     rsx! {
         main { class: "app-shell",
+            NotificationHost { notification }
+
             section { class: "topbar",
                 div {
                     h1 { "Blog" }
@@ -20,8 +23,8 @@ pub(crate) fn App() -> Element {
             }
 
             section { class: "workspace",
-                AuthPanel { token }
-                PostsPanel { token }
+                AuthPanel { token, notification }
+                PostsPanel { token, notification }
             }
         }
     }

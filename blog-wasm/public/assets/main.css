@@ -67,6 +67,52 @@ p {
   white-space: nowrap;
 }
 
+
+.notification-host {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 20;
+  width: min(380px, calc(100vw - 32px));
+}
+
+.notification {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #cfd7df;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #ffffff;
+  box-shadow: 0 12px 32px rgba(20, 31, 41, 0.16);
+  line-height: 1.4;
+}
+
+.notification-success {
+  color: #1f7a5c;
+  border-color: #a9d8c5;
+  background: #f2fbf7;
+}
+
+.notification-error {
+  color: #8f2f26;
+  border-color: #efb5ad;
+  background: #fff7f5;
+}
+
+.notification-close {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: 360px 1fr;
@@ -229,7 +275,40 @@ button.danger {
     flex-direction: column;
   }
 
-  .workspace {
+  
+.notification-host {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 20;
+  width: min(380px, calc(100vw - 32px));
+}
+
+.notification-success {
+  color: #1f7a5c;
+  border-color: #a9d8c5;
+  background: #f2fbf7;
+}
+
+.notification-error {
+  color: #8f2f26;
+  border-color: #efb5ad;
+  background: #fff7f5;
+}
+
+.notification-close {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.workspace {
     grid-template-columns: 1fr;
   }
 
